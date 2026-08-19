@@ -1,0 +1,82 @@
+"""
+Automated unit and integration test suite for AgentRelay Phase 1.
+"""
+
+import asyncio
+import sys
+import unittest
+
+from bridge import AgentBridge, BridgeEvent, EventType, GitRecoveryManager, MockAgentAdapter
+
+
+class TestBridgeEvent(unittest.TestCase):
+    def test_event_serialization(self):
+        event = BridgeEvent(
+            event_type=EventType.TOKEN,
+            payload={"token": "hello"},
+            timestamp=1700000000.0,
+        )
+        json_str = event.to_json()
+        self.assertIn('"event_type": "token"', json_str)
+        self.assertIn('"token": "hello"', json_str)
+        self.assertIn('"timestamp": 1700000000.0', json_str)
+
+
+class TestMockAgentAdapter(unittest.TestCase):
+    def test_mock_streaming_lifecycle(self):
+        async def _run():
+            adapter = MockAgentAdapter()
+            events = []
+            async for event in adapter.execute_task("Refactor authentication"):
+                events.append(event)
+            return events
+
+        events = asyncio.run(_run())
+        event_types = [e.event_type for e in events]
+
+        # Verify event stream structure
+        self.assertIn(EventType.STATUS, event_types)
+        self.assertIn(EventType.THINKING, event_types)
+        self.assertIn(EventType.TOOL_CALL, event_types)
+        self.assertIn(EventType.TOKEN, event_types)
+        self.assertIn(EventType.USAGE, event_types)
+        self.assertIn(EventType.COMPLETED, event_types)
+
+        # Verify usage metadata payload
+        usage_event = next(e for e in events if e.event_type == EventType.USAGE)
+        self.assertIn("prompt_token_count", usage_event.payload)
+        self.assertIn("total_token_count", usage_event.payload)
+        self.assertIn("cached_content_token_count", usage_event.payload)
+        self.assertGreater(usage_event.payload["total_token_count"], 0)
+
+
+class TestGitRecoveryManager(unittest.TestCase):
+    def test_recovery_manager_methods(self):
+        manager = GitRecoveryManager()
+        audit_res = manager.auto_audit()
+        self.assertTrue(audit_res["success"])
+        self.assertIn("has_changes", audit_res)
+
+        undo_res = manager.undo_changes()
+        self.assertTrue(undo_res["success"])
+
+
+class TestAgentBridgeIntegration(unittest.TestCase):
+    def test_bridge_run_prompt(self):
+        async def _run():
+            bridge = AgentBridge(use_mock=True)
+            tokens_received = []
+            async for event in bridge.run_prompt("Build feature X"):
+                if event.event_type == EventType.TOKEN:
+                    tokens_received.append(event.payload.get("token"))
+            return bridge.mode, tokens_received
+
+        mode, tokens_received = asyncio.run(_run())
+        self.assertEqual(mode, "MOCK")
+        self.assertGreater(len(tokens_received), 0)
+        full_text = "".join(tokens_received)
+        self.assertIn("Hello from AgentRelay!", full_text)
+
+
+if __name__ == "__main__":
+    unittest.main()
