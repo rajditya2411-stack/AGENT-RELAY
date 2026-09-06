@@ -16,6 +16,10 @@ from relay_server import (
     serve_mobile_web_app,
     health_check,
     get_device_status,
+    get_device_projects,
+    get_device_tasks,
+    get_terminal_logs,
+    get_audit_logs,
 )
 
 
@@ -83,7 +87,21 @@ class TestRelayServer(unittest.TestCase):
             self.assertFalse(data_offline["is_online"])
             self.assertEqual(data_offline["status"], "DEVICE OFFLINE")
 
-            # 4. Test WebSocket flow
+            # 4. Test multi-project & telemetry endpoints
+            projects_data = await get_device_projects("my-laptop")
+            self.assertIn("projects", projects_data)
+            self.assertGreaterEqual(len(projects_data["projects"]), 4)
+
+            tasks_data = await get_device_tasks("my-laptop")
+            self.assertIn("active_task", tasks_data)
+
+            term_data = await get_terminal_logs("my-laptop")
+            self.assertIn("lines", term_data)
+
+            audit_data = await get_audit_logs("my-laptop")
+            self.assertIn("logs", audit_data)
+
+            # 5. Test WebSocket flow
             device_id = "test-ws-001"
             token = "secret123"
 
@@ -105,6 +123,7 @@ class TestRelayServer(unittest.TestCase):
 
             self.assertEqual(client_ws.sent_json_list[0]["event_type"], "init")
             self.assertTrue(client_ws.sent_json_list[0]["payload"]["is_online"])
+            self.assertIn("projects", client_ws.sent_json_list[0]["payload"])
 
             # Client sends prompt
             await client_ws.receive_queue.put(json.dumps({"type": "prompt", "prompt": "Fix auth"}))

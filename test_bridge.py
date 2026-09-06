@@ -3,10 +3,11 @@ Automated unit and integration test suite for AgentRelay Phase 1.
 """
 
 import asyncio
+import subprocess
 import sys
 import unittest
 
-from bridge import AgentBridge, BridgeEvent, EventType, GitRecoveryManager, MockAgentAdapter
+from bridge import AgentBridge, BridgeEvent, EventType, GitRecoveryManager, MockAgentAdapter, ProjectManager
 
 
 class TestBridgeEvent(unittest.TestCase):
@@ -52,13 +53,27 @@ class TestMockAgentAdapter(unittest.TestCase):
 
 class TestGitRecoveryManager(unittest.TestCase):
     def test_recovery_manager_methods(self):
-        manager = GitRecoveryManager()
-        audit_res = manager.auto_audit()
-        self.assertTrue(audit_res["success"])
-        self.assertIn("has_changes", audit_res)
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmpdir:
+            subprocess.run(["git", "init"], cwd=tmpdir, capture_output=True, check=False)
+            manager = GitRecoveryManager(workspace_path=tmpdir)
+            audit_res = manager.auto_audit()
+            self.assertTrue(audit_res["success"])
+            self.assertIn("has_changes", audit_res)
 
-        undo_res = manager.undo_changes()
-        self.assertTrue(undo_res["success"])
+            undo_res = manager.undo_changes()
+            self.assertTrue(undo_res["success"])
+
+            test_res = manager.run_unit_tests()
+            self.assertIn("summary", test_res)
+
+    def test_project_manager(self):
+        pm = ProjectManager()
+        projects = pm.list_projects()
+        self.assertGreaterEqual(len(projects), 4)
+        project_ids = [p["id"] for p in projects]
+        self.assertIn("agent-relay", project_ids)
+        self.assertIn("mindmap", project_ids)
 
 
 class TestAgentBridgeIntegration(unittest.TestCase):

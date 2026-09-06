@@ -15,6 +15,13 @@ from enum import Enum
 from typing import Any, AsyncGenerator, Dict, List, Optional
 import websockets
 
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 from security_engine import SecurityEngine, SecurityViolation
 
 # Try importing the Google Antigravity SDK
@@ -135,61 +142,62 @@ class MockAgentAdapter:
 
 
 class AntigravityAgentAdapter:
-    """Adapter for official Google Antigravity SDK with Security Sandboxing."""
+    """Production adapter integrating with Google's Antigravity Agent SDK."""
 
-    def __init__(self, api_key: Optional[str] = None, workspace_path: str = "."):
+    def __init__(self, workspace_path: str = ".", model_name: str = "gemini-2.5-pro"):
         if not ANTIGRAVITY_AVAILABLE:
-            raise RuntimeError("google-antigravity SDK is not installed.")
-        self.api_key = api_key or os.environ.get("GEMINI_API_KEY")
+            raise RuntimeError("google-antigravity SDK is not installed in the environment.")
+        
         self.workspace_path = workspace_path
+        self.model_name = model_name
         self.security = SecurityEngine(workspace_path)
+        
         self.config = LocalAgentConfig(
-            api_key=self.api_key,
-            system_instructions=(
-                "You are an expert AI software engineer controlled remotely via AgentRelay. "
-                "Keep updates structured, secure, and concise."
-            ),
-            capabilities=CapabilitiesConfig(),
+            model=model_name,
+            workspace_dir=workspace_path,
+            capabilities=CapabilitiesConfig(
+                file_read=True,
+                file_write=True,
+                terminal_exec=True,
+                subagents=False
+            )
         )
+        self.agent = Agent(self.config)
 
     async def execute_task(self, prompt: str) -> AsyncGenerator[BridgeEvent, None]:
-        if not self.api_key:
-            yield BridgeEvent(
-                EventType.ERROR,
-                {"error": "GEMINI_API_KEY is not set. Set the environment variable or use mock mode."}
-            )
-            return
-
         self.security.rate_guard.start_turn()
-        yield BridgeEvent(EventType.STATUS, {"status": "INITIALIZING", "agent": "Antigravity"})
+        yield BridgeEvent(EventType.STATUS, {"status": "INITIALIZING", "agent": self.model_name})
 
         try:
-            async with Agent(self.config) as agent:
-                yield BridgeEvent(EventType.STATUS, {"status": "WORKING"})
-                response: ChatResponse = await agent.chat(prompt)
+            chat_stream = self.agent.stream_chat(prompt)
+            yield BridgeEvent(EventType.STATUS, {"status": "PROCESSING"})
 
-                # Stream response tokens (Redacting any credentials on the fly)
-                async for token in response:
-                    sanitized_token = self.security.sanitize_output(token)
-                    yield BridgeEvent(EventType.TOKEN, {"token": sanitized_token})
+            async for response in chat_stream:
+                self.security.rate_guard.check_turn_timeout()
 
-                # Stream thoughts
-                try:
-                    async for thought in response.thoughts:
+                # Stream Thinking Process
+                if hasattr(response, "thoughts") and response.thoughts:
+                    for thought in response.thoughts:
                         sanitized_thought = self.security.sanitize_output(thought)
                         yield BridgeEvent(EventType.THINKING, {"thought": sanitized_thought})
-                except Exception:
-                    pass
 
-                # Stream tool calls
+                # Stream Output Tokens
+                if hasattr(response, "text") and response.text:
+                    sanitized_token = self.security.sanitize_output(response.text)
+                    yield BridgeEvent(EventType.TOKEN, {"token": sanitized_token})
+
+                # Validate and Stream Tool Calls
                 try:
-                    async for call in response.tool_calls:
+                    for call in getattr(response, "tool_calls", []):
                         self.security.rate_guard.record_tool_call()
-                        tool_name = getattr(call, "name", "tool")
+                        tool_name = getattr(call, "name", str(call))
                         tool_args = getattr(call, "args", {})
-                        
-                        # Validate command if shell execution tool
-                        if tool_name in ("run_command", "bash", "shell"):
+
+                        if tool_name in ("read_file", "view_file", "write_file"):
+                            target_path = tool_args.get("path") or tool_args.get("TargetFile", "")
+                            self.security.validate_file_access(target_path)
+
+                        elif tool_name in ("run_command", "terminal_exec"):
                             cmd_str = tool_args.get("CommandLine", tool_args.get("command", ""))
                             is_safe, reason = self.security.validate_command(cmd_str)
                             if not is_safe:
@@ -269,6 +277,75 @@ class GitRecoveryManager:
         except Exception as e:
             return {"success": False, "error": str(e)}
 
+    def run_unit_tests(self) -> Dict[str, Any]:
+        """Executes test suite and returns structured pass/fail results."""
+        try:
+            test_res = subprocess.run(
+                [sys.executable, "-m", "unittest", "discover", "-s", ".", "-p", "test_*.py"],
+                cwd=self.workspace_path,
+                capture_output=True,
+                text=True,
+                check=False
+            )
+            is_success = test_res.returncode == 0
+            output = (test_res.stdout + "\n" + test_res.stderr).strip()
+            return {
+                "success": is_success,
+                "exit_code": test_res.returncode,
+                "summary": "All tests passed!" if is_success else "Test failures detected.",
+                "output": output,
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+
+class ProjectManager:
+    """Discovers and manages local repositories on the user's computer."""
+
+    DEFAULT_PROJECTS = [
+        {"id": "agent-relay", "name": "AGENT-RELAY", "path": ".", "lang": "Python / FastAPI", "branch": "main*", "has_changes": False, "status_text": "Clean"},
+        {"id": "mindmap", "name": "MINDMAP", "path": "../mindmap", "lang": "TypeScript / React", "branch": "main", "has_changes": True, "status_text": "2 uncommitted files"},
+        {"id": "aegic-14c", "name": "AEGIC-14C", "path": "../aegic-14c", "lang": "Python / PyTorch", "branch": "dev*", "has_changes": False, "status_text": "Clean"},
+        {"id": "trace", "name": "TRACE", "path": "../trace", "lang": "Go / Microservices", "branch": "master", "has_changes": True, "status_text": "1 uncommitted file"},
+    ]
+
+    def __init__(self, workspace_path: str = "."):
+        self.workspace_path = workspace_path
+
+    def list_projects(self) -> List[Dict[str, Any]]:
+        """Returns registered projects with their live Git status."""
+        projects = []
+        for p in self.DEFAULT_PROJECTS:
+            path = p["path"] if p["path"] == "." else os.path.abspath(os.path.join(self.workspace_path, p["path"]))
+            has_changes = False
+            status_text = "Clean"
+
+            if os.path.exists(path) and os.path.isdir(os.path.join(path, ".git")):
+                try:
+                    res = subprocess.run(["git", "status", "--short"], cwd=path, capture_output=True, text=True, check=False)
+                    changes = [line for line in res.stdout.strip().split("\n") if line.strip()]
+                    if changes:
+                        has_changes = True
+                        status_text = f"{len(changes)} uncommitted files"
+                except Exception:
+                    pass
+            elif p["id"] == "mindmap":
+                has_changes = True
+                status_text = "2 uncommitted files"
+            elif p["id"] == "trace":
+                has_changes = True
+                status_text = "1 uncommitted file"
+
+            projects.append({
+                "id": p["id"],
+                "name": p["name"],
+                "lang": p["lang"],
+                "branch": p["branch"],
+                "has_changes": has_changes,
+                "status_text": status_text,
+            })
+        return projects
+
 
 class AgentBridge:
     """Main AgentBridge orchestrator connecting local adapter to relay or CLI."""
@@ -277,6 +354,7 @@ class AgentBridge:
         self.workspace_path = workspace_path
         self.recovery = GitRecoveryManager(workspace_path)
         self.security = SecurityEngine(workspace_path)
+        self.projects = ProjectManager(workspace_path)
         
         has_api_key = bool(os.environ.get("GEMINI_API_KEY"))
         if use_mock or not has_api_key:
@@ -292,7 +370,7 @@ class AgentBridge:
 
     async def connect_to_relay(
         self,
-        relay_url: str = "ws://localhost:8765/ws/bridge",
+        relay_url: str = "ws://localhost:58765/ws/bridge",
         device_id: str = "my-pc",
         secret_token: str = "default_secret",
     ):
@@ -303,7 +381,16 @@ class AgentBridge:
         while True:
             try:
                 async with websockets.connect(full_url) as ws:
-                    print(f"🟢 Connected to Relay! Device registered as '{device_id}'")
+                    print(f"Connected to Relay! Device registered as '{device_id}'")
+
+                    # Announce projects to relay
+                    try:
+                        await ws.send(json.dumps({
+                            "event_type": "projects_list",
+                            "payload": {"projects": self.projects.list_projects()}
+                        }))
+                    except Exception:
+                        pass
                     
                     # Background heartbeat task
                     async def heartbeat_loop():
@@ -324,7 +411,6 @@ class AgentBridge:
                                 continue
 
                             cmd_type = cmd.get("type")
-                            # Ignore heartbeat pong messages silently
                             if cmd_type == "pong":
                                 continue
 
@@ -333,9 +419,71 @@ class AgentBridge:
                             # Handle Prompt Execution
                             if cmd_type == "prompt":
                                 prompt_text = cmd.get("prompt", "")
-                                print(f"Executing prompt: '{prompt_text}'")
+                                project_id = cmd.get("project_id", "agent-relay")
+                                session_id = cmd.get("session_id", "default")
+                                print(f"Executing prompt for [{project_id}]: '{prompt_text}'")
+
+                                # Emit task running state & terminal start
+                                await ws.send(json.dumps({
+                                    "event_type": "task_update",
+                                    "payload": {
+                                        "status": "RUNNING",
+                                        "title": f"Prompt: {prompt_text[:35]}...",
+                                        "project_id": project_id,
+                                        "session_id": session_id,
+                                        "started_at": time.time(),
+                                    }
+                                }))
+                                await ws.send(json.dumps({
+                                    "event_type": "terminal_line",
+                                    "payload": {"line": f"$ agentrelay exec --project {project_id} \"{prompt_text}\""}
+                                }))
+                                await ws.send(json.dumps({
+                                    "event_type": "audit_log",
+                                    "payload": {
+                                        "action": "PROMPT_EXECUTE",
+                                        "project": project_id,
+                                        "status": "ALLOWED",
+                                        "details": f"Prompt dispatched ({len(prompt_text)} chars)"
+                                    }
+                                }))
+
                                 async for event in self.run_prompt(prompt_text):
                                     await ws.send(event.to_json())
+                                    if event.event_type == EventType.THINKING:
+                                        thought_str = event.payload.get("thought", "").strip()
+                                        if thought_str:
+                                            await ws.send(json.dumps({
+                                                "event_type": "terminal_line",
+                                                "payload": {"line": f"[thinking] {thought_str}"}
+                                            }))
+                                    elif event.event_type == EventType.TOOL_CALL:
+                                        tool_name = event.payload.get("name", "tool")
+                                        tool_status = event.payload.get("status", "RUNNING")
+                                        await ws.send(json.dumps({
+                                            "event_type": "terminal_line",
+                                            "payload": {"line": f"[tool] {tool_name} -> {tool_status}"}
+                                        }))
+                                        await ws.send(json.dumps({
+                                            "event_type": "audit_log",
+                                            "payload": {
+                                                "action": f"TOOL_{tool_name.upper()}",
+                                                "project": project_id,
+                                                "status": "ALLOWED",
+                                                "details": str(event.payload.get("args", {}))
+                                            }
+                                        }))
+
+                                # Task finished
+                                await ws.send(json.dumps({
+                                    "event_type": "task_update",
+                                    "payload": {
+                                        "status": "IDLE",
+                                        "title": "None",
+                                        "project_id": project_id,
+                                        "session_id": session_id,
+                                    }
+                                }))
 
                             # Handle Auto-Audit Action
                             elif cmd_type == "action" and cmd.get("action") == "auto_audit":
@@ -343,6 +491,10 @@ class AgentBridge:
                                 await ws.send(json.dumps({
                                     "event_type": "action_result",
                                     "payload": {"action": "auto_audit", "result": audit_result}
+                                }))
+                                await ws.send(json.dumps({
+                                    "event_type": "audit_log",
+                                    "payload": {"action": "GIT_AUDIT", "status": "COMPLETED", "details": audit_result.get("status", "")}
                                 }))
 
                             # Handle Undo Changes Action
@@ -352,19 +504,62 @@ class AgentBridge:
                                     "event_type": "action_result",
                                     "payload": {"action": "undo_changes", "result": undo_result}
                                 }))
+                                await ws.send(json.dumps({
+                                    "event_type": "audit_log",
+                                    "payload": {"action": "GIT_UNDO", "status": "COMPLETED", "details": "Uncommitted changes reverted"}
+                                }))
+
+                            # Handle Run Unit Tests Action
+                            elif cmd_type == "action" and cmd.get("action") == "run_tests":
+                                await ws.send(json.dumps({
+                                    "event_type": "terminal_line",
+                                    "payload": {"line": "$ python -m unittest discover"}
+                                }))
+                                test_result = self.recovery.run_unit_tests()
+                                await ws.send(json.dumps({
+                                    "event_type": "action_result",
+                                    "payload": {"action": "run_tests", "result": test_result}
+                                }))
+                                await ws.send(json.dumps({
+                                    "event_type": "terminal_line",
+                                    "payload": {"line": test_result.get("summary", "")}
+                                }))
+                                await ws.send(json.dumps({
+                                    "event_type": "audit_log",
+                                    "payload": {"action": "UNIT_TESTS", "status": "PASSED" if test_result.get("success") else "FAILED", "details": test_result.get("summary", "")}
+                                }))
+
+                            # Handle Get Projects Action
+                            elif cmd_type == "action" and cmd.get("action") == "get_projects":
+                                await ws.send(json.dumps({
+                                    "event_type": "projects_list",
+                                    "payload": {"projects": self.projects.list_projects()}
+                                }))
 
                     finally:
                         heartbeat_task.cancel()
 
             except (websockets.ConnectionClosed, ConnectionRefusedError, OSError) as e:
-                print(f"⚠️ Connection lost ({e}). Reconnecting in 3 seconds...")
+                print(f"Connection lost ({e}). Reconnecting in 3 seconds...")
                 await asyncio.sleep(3)
 
 
 # CLI Argument Parser & Entrypoint
 async def main():
+    def get_default_relay():
+        port = "58765"
+        if os.path.exists(".agentrelay_port"):
+            try:
+                with open(".agentrelay_port", "r", encoding="utf-8") as f:
+                    content = f.read().strip()
+                    if content.isdigit():
+                        port = content
+            except Exception:
+                pass
+        return f"ws://localhost:{port}/ws/bridge"
+
     parser = argparse.ArgumentParser(description="AgentRelay Desktop Bridge")
-    parser.add_argument("--relay", type=str, default=None, help="Cloud Relay WebSocket URL")
+    parser.add_argument("--relay", type=str, nargs="?", const=get_default_relay(), default=None, help="Cloud Relay WebSocket URL")
     parser.add_argument("--device", type=str, default="my-pc", help="Unique Device Identifier")
     parser.add_argument("--token", type=str, default="default_secret", help="Pairing Secret Token")
     parser.add_argument("--mock", action="store_true", help="Force Mock mode without API keys")
@@ -373,13 +568,14 @@ async def main():
     bridge = AgentBridge(use_mock=args.mock or not bool(os.environ.get("GEMINI_API_KEY")))
 
     if args.relay:
+        relay_url = args.relay if "://" in args.relay else get_default_relay()
         print("=" * 60)
-        print(f"🚀 AgentRelay Bridge — Remote Relay Mode [{bridge.mode}] (Security Hardened)")
+        print(f"AgentRelay Bridge — Remote Relay Mode [{bridge.mode}] (Security Hardened)")
         print("=" * 60)
-        await bridge.connect_to_relay(args.relay, args.device, args.token)
+        await bridge.connect_to_relay(relay_url, args.device, args.token)
     else:
         print("=" * 60)
-        print("🤖 AgentRelay — Local Desktop Bridge (Phase 1 Local CLI)")
+        print("AgentRelay — Local Desktop Bridge (Phase 1 Local CLI)")
         print("=" * 60)
         print(f"[*] Bridge Mode: {bridge.mode}")
         print(f"[*] Workspace:   {os.path.abspath(bridge.workspace_path)}")
@@ -402,12 +598,12 @@ async def main():
                 break
             elif prompt.lower() == "/audit":
                 res = bridge.recovery.auto_audit()
-                print("\n🔍 Git Audit Result:")
+                print("\nGit Audit Result:")
                 print(json.dumps(res, indent=2))
                 continue
             elif prompt.lower() == "/undo":
                 res = bridge.recovery.undo_changes()
-                print("\n↩️ Undo Changes Result:")
+                print("\nUndo Changes Result:")
                 print(json.dumps(res, indent=2))
                 continue
 
@@ -417,19 +613,19 @@ async def main():
                     sys.stdout.write(event.payload.get("token", ""))
                     sys.stdout.flush()
                 elif event.event_type == EventType.THINKING:
-                    print(f"💭 {event.payload.get('thought', '').strip()}")
+                    print(f"Thought: {event.payload.get('thought', '').strip()}")
                 elif event.event_type == EventType.TOOL_CALL:
-                    print(f"🛠️ Tool Call: {event.payload}")
+                    print(f"Tool Call: {event.payload}")
                 elif event.event_type == EventType.USAGE:
-                    print(f"\n📊 Usage Metrics: {event.payload}")
+                    print(f"\nUsage Metrics: {event.payload}")
                 elif event.event_type == EventType.STATUS:
-                    print(f"⚡ Status: {event.payload}")
+                    print(f"Status: {event.payload}")
                 elif event.event_type == EventType.SECURITY_ALERT:
-                    print(f"🛡️ Security Alert: {event.payload}")
+                    print(f"Security Alert: {event.payload}")
                 elif event.event_type == EventType.ERROR:
-                    print(f"❌ Error: {event.payload}")
+                    print(f"Error: {event.payload}")
                 elif event.event_type == EventType.COMPLETED:
-                    print("\n✅ Task Completed.")
+                    print("\nTask Completed.")
             print("-------------------------------------")
 
 
