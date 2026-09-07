@@ -90,8 +90,61 @@ class TestAgentBridgeIntegration(unittest.TestCase):
         self.assertEqual(mode, "MOCK")
         self.assertGreater(len(tokens_received), 0)
         full_text = "".join(tokens_received)
-        self.assertIn("Hello from AgentRelay!", full_text)
+        self.assertIn("Hello from AgentRelay", full_text)
+
+
+class TestMultiProviderAdapters(unittest.TestCase):
+    def test_claude_adapter_fallback_execution(self):
+        from bridge import ClaudeAgentAdapter
+        adapter = ClaudeAgentAdapter(model_name="claude-3-7-sonnet")
+        
+        async def _run():
+            events = []
+            async for event in adapter.execute_task("Write unit test for parser"):
+                events.append(event)
+            return events
+
+        events = asyncio.run(_run())
+        event_types = [e.event_type for e in events]
+        self.assertIn(EventType.STATUS, event_types)
+        self.assertIn(EventType.THINKING, event_types)
+        self.assertIn(EventType.TOKEN, event_types)
+        self.assertIn(EventType.COMPLETED, event_types)
+
+    def test_codex_adapter_fallback_execution(self):
+        from bridge import CodexAgentAdapter
+        adapter = CodexAgentAdapter(model_name="gpt-4o")
+
+        async def _run():
+            events = []
+            async for event in adapter.execute_task("Optimize SQL query"):
+                events.append(event)
+            return events
+
+        events = asyncio.run(_run())
+        event_types = [e.event_type for e in events]
+        self.assertIn(EventType.STATUS, event_types)
+        self.assertIn(EventType.THINKING, event_types)
+        self.assertIn(EventType.TOKEN, event_types)
+        self.assertIn(EventType.COMPLETED, event_types)
+
+    def test_provider_switching_in_bridge(self):
+        bridge = AgentBridge(use_mock=True, provider="gemini")
+        self.assertEqual(bridge.mode, "MOCK")
+
+        mode = bridge.switch_provider("claude")
+        self.assertIn("Claude Code", mode)
+        self.assertEqual(bridge.provider, "claude")
+
+        mode = bridge.switch_provider("codex")
+        self.assertIn("Codex", mode)
+        self.assertEqual(bridge.provider, "codex")
+
+        mode = bridge.switch_provider("gemini")
+        self.assertEqual(mode, "MOCK")
+        self.assertEqual(bridge.provider, "gemini")
 
 
 if __name__ == "__main__":
     unittest.main()
+

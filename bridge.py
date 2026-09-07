@@ -32,6 +32,20 @@ try:
 except ImportError:
     ANTIGRAVITY_AVAILABLE = False
 
+# Try importing Anthropic SDK
+try:
+    import anthropic
+    ANTHROPIC_AVAILABLE = True
+except ImportError:
+    ANTHROPIC_AVAILABLE = False
+
+# Try importing OpenAI SDK
+try:
+    import openai
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+
 
 class EventType(str, Enum):
     STATUS = "status"
@@ -68,25 +82,27 @@ class BridgeEvent:
 class MockAgentAdapter:
     """Simulates an AI coding agent for testing the bridge without API keys."""
 
-    def __init__(self, workspace_path: str = "."):
+    def __init__(self, workspace_path: str = ".", agent_name: str = "MockAntigravity", model_name: str = "gemini-2.5-pro"):
         self.workspace_path = workspace_path
+        self.agent_name = agent_name
+        self.model_name = model_name
         self.security = SecurityEngine(workspace_path)
 
     async def execute_task(self, prompt: str) -> AsyncGenerator[BridgeEvent, None]:
         self.security.rate_guard.start_turn()
-        yield BridgeEvent(EventType.STATUS, {"status": "INITIALIZING", "agent": "MockAntigravity"})
-        await asyncio.sleep(0.2)
+        yield BridgeEvent(EventType.STATUS, {"status": "INITIALIZING", "agent": self.agent_name, "model": self.model_name})
+        await asyncio.sleep(0.15)
 
         # 1. Stream Thoughts (Sanitized)
         yield BridgeEvent(EventType.STATUS, {"status": "THINKING"})
         thoughts = [
-            f"Analyzing prompt: '{self.security.sanitize_output(prompt)}'...\n",
-            "Inspecting workspace files and security boundaries...\n",
-            "Planning code modifications...\n",
+            f"[{self.agent_name}] Analyzing prompt: '{self.security.sanitize_output(prompt)}'...\n",
+            f"[{self.agent_name}] Inspecting workspace files and security boundaries...\n",
+            f"[{self.agent_name}] Planning code modifications...\n",
         ]
         for thought in thoughts:
             yield BridgeEvent(EventType.THINKING, {"thought": thought})
-            await asyncio.sleep(0.3)
+            await asyncio.sleep(0.2)
 
         # 2. Simulate Tool Execution with Security Verification
         self.security.rate_guard.record_tool_call()
@@ -105,7 +121,7 @@ class MockAgentAdapter:
             "status": "RUNNING",
         }
         yield BridgeEvent(EventType.TOOL_CALL, tool_call_data)
-        await asyncio.sleep(0.4)
+        await asyncio.sleep(0.25)
 
         tool_call_data["status"] = "SUCCESS"
         tool_call_data["result"] = "File inspected (42 lines, 0 vulnerabilities found)."
@@ -114,7 +130,7 @@ class MockAgentAdapter:
         # 3. Stream Response Tokens (Sanitized)
         yield BridgeEvent(EventType.STATUS, {"status": "STREAMING_RESPONSE"})
         response_text = (
-            f"Hello from AgentRelay!\n\n"
+            f"Hello from AgentRelay ({self.agent_name} / {self.model_name})!\n\n"
             f"I have received your request: '{prompt}'.\n"
             f"1. Workspace is active and verified.\n"
             f"2. Security Engine is active (PathGuard, SecretRedactor & CommandGuard).\n"
@@ -125,7 +141,7 @@ class MockAgentAdapter:
         words = sanitized_response.split(" ")
         for word in words:
             yield BridgeEvent(EventType.TOKEN, {"token": word + " "})
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.03)
 
         # 4. Emit Token Usage
         usage_data = {
@@ -144,7 +160,7 @@ class MockAgentAdapter:
 class AntigravityAgentAdapter:
     """Production adapter integrating with Google's Antigravity Agent SDK."""
 
-    def __init__(self, workspace_path: str = ".", model_name: str = "gemini-2.5-pro"):
+    def __init__(self, workspace_path: str = ".", model_name: str = "gemini-2.5-pro", api_key: Optional[str] = None):
         if not ANTIGRAVITY_AVAILABLE:
             raise RuntimeError("google-antigravity SDK is not installed in the environment.")
         
@@ -166,7 +182,7 @@ class AntigravityAgentAdapter:
 
     async def execute_task(self, prompt: str) -> AsyncGenerator[BridgeEvent, None]:
         self.security.rate_guard.start_turn()
-        yield BridgeEvent(EventType.STATUS, {"status": "INITIALIZING", "agent": self.model_name})
+        yield BridgeEvent(EventType.STATUS, {"status": "INITIALIZING", "agent": "Gemini Antigravity", "model": self.model_name})
 
         try:
             chat_stream = self.agent.stream_chat(prompt)
@@ -229,6 +245,122 @@ class AntigravityAgentAdapter:
 
                 yield BridgeEvent(EventType.STATUS, {"status": "IDLE"})
                 yield BridgeEvent(EventType.COMPLETED, {"success": True})
+
+        except SecurityViolation as sv:
+            yield BridgeEvent(EventType.SECURITY_ALERT, {"security_error": str(sv)})
+        except Exception as exc:
+            yield BridgeEvent(EventType.ERROR, {"error": str(exc)})
+
+
+class ClaudeAgentAdapter:
+    """Production adapter integrating Anthropic Claude Code / Claude 3.7."""
+
+    def __init__(self, workspace_path: str = ".", model_name: str = "claude-3-7-sonnet-20250219", api_key: Optional[str] = None):
+        self.workspace_path = workspace_path
+        self.model_name = model_name
+        self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("CLAUDE_API_KEY")
+        self.security = SecurityEngine(workspace_path)
+        self.use_fallback = not (ANTHROPIC_AVAILABLE and bool(self.api_key))
+        if self.use_fallback:
+            self.fallback_adapter = MockAgentAdapter(
+                workspace_path=workspace_path,
+                agent_name="Claude Code",
+                model_name=model_name
+            )
+
+    async def execute_task(self, prompt: str) -> AsyncGenerator[BridgeEvent, None]:
+        if self.use_fallback:
+            async for ev in self.fallback_adapter.execute_task(prompt):
+                yield ev
+            return
+
+        self.security.rate_guard.start_turn()
+        yield BridgeEvent(EventType.STATUS, {"status": "INITIALIZING", "agent": "Claude Code", "model": self.model_name})
+
+        try:
+            client = anthropic.AsyncAnthropic(api_key=self.api_key)
+            yield BridgeEvent(EventType.STATUS, {"status": "PROCESSING"})
+
+            async with client.messages.stream(
+                model=self.model_name,
+                max_tokens=4096,
+                messages=[{"role": "user", "content": prompt}],
+            ) as stream:
+                async for event in stream:
+                    self.security.rate_guard.check_turn_timeout()
+
+                    if getattr(event, "type", "") == "thinking_delta":
+                        thought = getattr(event, "thinking", "")
+                        if thought:
+                            sanitized = self.security.sanitize_output(thought)
+                            yield BridgeEvent(EventType.THINKING, {"thought": sanitized})
+
+                    elif getattr(event, "type", "") == "text_delta":
+                        text = getattr(event, "text", "")
+                        if text:
+                            sanitized = self.security.sanitize_output(text)
+                            yield BridgeEvent(EventType.TOKEN, {"token": sanitized})
+
+            yield BridgeEvent(EventType.STATUS, {"status": "IDLE"})
+            yield BridgeEvent(EventType.COMPLETED, {"success": True})
+
+        except SecurityViolation as sv:
+            yield BridgeEvent(EventType.SECURITY_ALERT, {"security_error": str(sv)})
+        except Exception as exc:
+            yield BridgeEvent(EventType.ERROR, {"error": str(exc)})
+
+
+class CodexAgentAdapter:
+    """Production adapter integrating OpenAI Codex / GPT-4o / o3-mini."""
+
+    def __init__(self, workspace_path: str = ".", model_name: str = "gpt-4o", api_key: Optional[str] = None):
+        self.workspace_path = workspace_path
+        self.model_name = model_name
+        self.api_key = api_key or os.environ.get("OPENAI_API_KEY") or os.environ.get("CODEX_API_KEY")
+        self.security = SecurityEngine(workspace_path)
+        self.use_fallback = not (OPENAI_AVAILABLE and bool(self.api_key))
+        if self.use_fallback:
+            self.fallback_adapter = MockAgentAdapter(
+                workspace_path=workspace_path,
+                agent_name="OpenAI Codex",
+                model_name=model_name
+            )
+
+    async def execute_task(self, prompt: str) -> AsyncGenerator[BridgeEvent, None]:
+        if self.use_fallback:
+            async for ev in self.fallback_adapter.execute_task(prompt):
+                yield ev
+            return
+
+        self.security.rate_guard.start_turn()
+        yield BridgeEvent(EventType.STATUS, {"status": "INITIALIZING", "agent": "OpenAI Codex", "model": self.model_name})
+
+        try:
+            client = openai.AsyncOpenAI(api_key=self.api_key)
+            yield BridgeEvent(EventType.STATUS, {"status": "PROCESSING"})
+
+            response_stream = await client.chat.completions.create(
+                model=self.model_name,
+                messages=[{"role": "user", "content": prompt}],
+                stream=True,
+            )
+
+            async for chunk in response_stream:
+                self.security.rate_guard.check_turn_timeout()
+                if chunk.choices:
+                    delta = chunk.choices[0].delta
+                    reasoning = getattr(delta, "reasoning_content", None)
+                    if reasoning:
+                        sanitized = self.security.sanitize_output(reasoning)
+                        yield BridgeEvent(EventType.THINKING, {"thought": sanitized})
+
+                    content = delta.content
+                    if content:
+                        sanitized = self.security.sanitize_output(content)
+                        yield BridgeEvent(EventType.TOKEN, {"token": sanitized})
+
+            yield BridgeEvent(EventType.STATUS, {"status": "IDLE"})
+            yield BridgeEvent(EventType.COMPLETED, {"success": True})
 
         except SecurityViolation as sv:
             yield BridgeEvent(EventType.SECURITY_ALERT, {"security_error": str(sv)})
@@ -350,19 +482,51 @@ class ProjectManager:
 class AgentBridge:
     """Main AgentBridge orchestrator connecting local adapter to relay or CLI."""
 
-    def __init__(self, use_mock: bool = False, workspace_path: str = "."):
+    def __init__(self, use_mock: bool = False, workspace_path: str = ".", provider: str = "gemini"):
         self.workspace_path = workspace_path
         self.recovery = GitRecoveryManager(workspace_path)
         self.security = SecurityEngine(workspace_path)
         self.projects = ProjectManager(workspace_path)
-        
-        has_api_key = bool(os.environ.get("GEMINI_API_KEY"))
-        if use_mock or not has_api_key:
-            self.adapter = MockAgentAdapter(workspace_path)
-            self.mode = "MOCK"
-        else:
-            self.adapter = AntigravityAgentAdapter(workspace_path=workspace_path)
-            self.mode = "ANTIGRAVITY"
+        self.provider = provider.lower()
+        self.use_mock = use_mock
+        self._init_adapter()
+
+    def _init_adapter(self, api_key: Optional[str] = None):
+        if self.provider in ("claude", "anthropic", "claude-code"):
+            self.provider = "claude"
+            has_key = bool(api_key or os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("CLAUDE_API_KEY"))
+            if self.use_mock or not has_key:
+                self.adapter = MockAgentAdapter(self.workspace_path, agent_name="Claude Code", model_name="claude-3-7-sonnet")
+                self.mode = "MOCK (Claude Code)"
+            else:
+                self.adapter = ClaudeAgentAdapter(workspace_path=self.workspace_path, api_key=api_key)
+                self.mode = "CLAUDE_CODE"
+
+        elif self.provider in ("codex", "openai", "gpt"):
+            self.provider = "codex"
+            has_key = bool(api_key or os.environ.get("OPENAI_API_KEY") or os.environ.get("CODEX_API_KEY"))
+            if self.use_mock or not has_key:
+                self.adapter = MockAgentAdapter(self.workspace_path, agent_name="OpenAI Codex", model_name="gpt-4o")
+                self.mode = "MOCK (Codex)"
+            else:
+                self.adapter = CodexAgentAdapter(workspace_path=self.workspace_path, api_key=api_key)
+                self.mode = "OPENAI_CODEX"
+
+        else:  # default: gemini / antigravity
+            self.provider = "gemini"
+            has_key = bool(api_key or os.environ.get("GEMINI_API_KEY"))
+            if self.use_mock or not has_key:
+                self.adapter = MockAgentAdapter(self.workspace_path, agent_name="MockAntigravity", model_name="gemini-2.5-pro")
+                self.mode = "MOCK"
+            else:
+                self.adapter = AntigravityAgentAdapter(workspace_path=self.workspace_path, api_key=api_key)
+                self.mode = "ANTIGRAVITY"
+
+    def switch_provider(self, provider: str, api_key: Optional[str] = None) -> str:
+        """Switches the active AI provider dynamically."""
+        self.provider = provider.lower()
+        self._init_adapter(api_key=api_key)
+        return self.mode
 
     async def run_prompt(self, prompt: str) -> AsyncGenerator[BridgeEvent, None]:
         async for event in self.adapter.execute_task(prompt):
@@ -536,6 +700,21 @@ class AgentBridge:
                                     "payload": {"projects": self.projects.list_projects()}
                                 }))
 
+                            # Handle Switch Provider Action
+                            elif cmd_type in ("set_provider", "switch_provider"):
+                                target_provider = cmd.get("provider", "gemini")
+                                target_key = cmd.get("api_key")
+                                active_mode = self.switch_provider(target_provider, api_key=target_key)
+                                print(f"[*] Provider switched to: {target_provider} [{active_mode}]")
+                                await ws.send(json.dumps({
+                                    "event_type": "provider_changed",
+                                    "payload": {"provider": target_provider, "mode": active_mode}
+                                }))
+                                await ws.send(json.dumps({
+                                    "event_type": "audit_log",
+                                    "payload": {"action": "PROVIDER_SWITCH", "status": "COMPLETED", "details": f"Switched to {target_provider} ({active_mode})"}
+                                }))
+
                     finally:
                         heartbeat_task.cancel()
 
@@ -562,10 +741,11 @@ async def main():
     parser.add_argument("--relay", type=str, nargs="?", const=get_default_relay(), default=None, help="Cloud Relay WebSocket URL")
     parser.add_argument("--device", type=str, default="my-pc", help="Unique Device Identifier")
     parser.add_argument("--token", type=str, default="default_secret", help="Pairing Secret Token")
+    parser.add_argument("--provider", type=str, default="gemini", choices=["gemini", "claude", "codex"], help="AI Provider to use (gemini, claude, codex)")
     parser.add_argument("--mock", action="store_true", help="Force Mock mode without API keys")
     args = parser.parse_args()
 
-    bridge = AgentBridge(use_mock=args.mock or not bool(os.environ.get("GEMINI_API_KEY")))
+    bridge = AgentBridge(use_mock=args.mock, provider=args.provider)
 
     if args.relay:
         relay_url = args.relay if "://" in args.relay else get_default_relay()
