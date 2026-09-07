@@ -435,17 +435,68 @@ class ProjectManager:
     """Discovers and manages local repositories on the user's computer."""
 
     DEFAULT_PROJECTS = [
-        {"id": "agent-relay", "name": "AGENT-RELAY", "path": ".", "lang": "Python / FastAPI", "branch": "main*", "has_changes": False, "status_text": "Clean"},
-        {"id": "mindmap", "name": "MINDMAP", "path": "../mindmap", "lang": "TypeScript / React", "branch": "main", "has_changes": True, "status_text": "2 uncommitted files"},
-        {"id": "aegic-14c", "name": "AEGIC-14C", "path": "../aegic-14c", "lang": "Python / PyTorch", "branch": "dev*", "has_changes": False, "status_text": "Clean"},
-        {"id": "trace", "name": "TRACE", "path": "../trace", "lang": "Go / Microservices", "branch": "master", "has_changes": True, "status_text": "1 uncommitted file"},
+        {
+            "id": "agent-relay",
+            "name": "AGENT-RELAY",
+            "path": ".",
+            "lang": "Python / FastAPI",
+            "agent": "antigravity",
+            "agent_name": "Antigravity",
+            "agent_badge": "⚡ Antigravity",
+            "branch": "main*",
+            "has_changes": False,
+            "status_text": "Clean"
+        },
+        {
+            "id": "mindmap",
+            "name": "MINDMAP",
+            "path": "../mindmap",
+            "lang": "TypeScript / React",
+            "agent": "claude",
+            "agent_name": "Claude Code",
+            "agent_badge": "🟠 Claude Code",
+            "branch": "main",
+            "has_changes": True,
+            "status_text": "2 uncommitted files"
+        },
+        {
+            "id": "aegic-14c",
+            "name": "AEGIC-14C",
+            "path": "../aegic-14c",
+            "lang": "Python / PyTorch",
+            "agent": "antigravity",
+            "agent_name": "Antigravity",
+            "agent_badge": "⚡ Antigravity",
+            "branch": "dev*",
+            "has_changes": False,
+            "status_text": "Clean"
+        },
+        {
+            "id": "trace",
+            "name": "TRACE",
+            "path": "../trace",
+            "lang": "Go / Microservices",
+            "agent": "codex",
+            "agent_name": "OpenAI Codex",
+            "agent_badge": "🟢 OpenAI Codex",
+            "branch": "master",
+            "has_changes": True,
+            "status_text": "1 uncommitted file"
+        },
     ]
 
     def __init__(self, workspace_path: str = "."):
         self.workspace_path = workspace_path
 
+    def get_project_agent(self, project_id: str) -> str:
+        """Returns the assigned agent tool for a given project."""
+        for p in self.DEFAULT_PROJECTS:
+            if p["id"] == project_id:
+                return p.get("agent", "antigravity")
+        return "antigravity"
+
     def list_projects(self) -> List[Dict[str, Any]]:
-        """Returns registered projects with their live Git status."""
+        """Returns registered projects with their live Git status and AI Agent badges."""
         projects = []
         for p in self.DEFAULT_PROJECTS:
             path = p["path"] if p["path"] == "." else os.path.abspath(os.path.join(self.workspace_path, p["path"]))
@@ -472,6 +523,9 @@ class ProjectManager:
                 "id": p["id"],
                 "name": p["name"],
                 "lang": p["lang"],
+                "agent": p.get("agent", "antigravity"),
+                "agent_name": p.get("agent_name", "Antigravity"),
+                "agent_badge": p.get("agent_badge", "⚡ Antigravity"),
                 "branch": p["branch"],
                 "has_changes": has_changes,
                 "status_text": status_text,
@@ -489,47 +543,99 @@ class AgentBridge:
         self.projects = ProjectManager(workspace_path)
         self.provider = provider.lower()
         self.use_mock = use_mock
+        self.api_keys = {
+            "gemini": os.environ.get("GEMINI_API_KEY", ""),
+            "claude": os.environ.get("ANTHROPIC_API_KEY", os.environ.get("CLAUDE_API_KEY", "")),
+            "codex": os.environ.get("OPENAI_API_KEY", os.environ.get("CODEX_API_KEY", "")),
+        }
+        self.adapters = {}
+        self._init_all_adapters()
         self._init_adapter()
 
+    def _init_all_adapters(self):
+        """Initializes all 3 provider adapters (Gemini, Claude, Codex) ready for routing."""
+        # 1. Gemini / Antigravity
+        gemini_key = self.api_keys.get("gemini", "")
+        if self.use_mock or not (ANTIGRAVITY_AVAILABLE and gemini_key):
+            self.adapters["gemini"] = MockAgentAdapter(self.workspace_path, agent_name="Antigravity", model_name="gemini-2.5-pro")
+            self.adapters["antigravity"] = self.adapters["gemini"]
+        else:
+            self.adapters["gemini"] = AntigravityAgentAdapter(workspace_path=self.workspace_path, api_key=gemini_key)
+            self.adapters["antigravity"] = self.adapters["gemini"]
+
+        # 2. Claude Code
+        claude_key = self.api_keys.get("claude", "")
+        if self.use_mock or not (ANTHROPIC_AVAILABLE and claude_key):
+            self.adapters["claude"] = MockAgentAdapter(self.workspace_path, agent_name="Claude Code", model_name="claude-3-7-sonnet")
+        else:
+            self.adapters["claude"] = ClaudeAgentAdapter(workspace_path=self.workspace_path, api_key=claude_key)
+
+        # 3. OpenAI Codex
+        codex_key = self.api_keys.get("codex", "")
+        if self.use_mock or not (OPENAI_AVAILABLE and codex_key):
+            self.adapters["codex"] = MockAgentAdapter(self.workspace_path, agent_name="OpenAI Codex", model_name="gpt-4o")
+        else:
+            self.adapters["codex"] = CodexAgentAdapter(workspace_path=self.workspace_path, api_key=codex_key)
+
     def _init_adapter(self, api_key: Optional[str] = None):
+        self._init_all_adapters()
         if self.provider in ("claude", "anthropic", "claude-code"):
             self.provider = "claude"
-            has_key = bool(api_key or os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("CLAUDE_API_KEY"))
-            if self.use_mock or not has_key:
-                self.adapter = MockAgentAdapter(self.workspace_path, agent_name="Claude Code", model_name="claude-3-7-sonnet")
-                self.mode = "MOCK (Claude Code)"
-            else:
-                self.adapter = ClaudeAgentAdapter(workspace_path=self.workspace_path, api_key=api_key)
-                self.mode = "CLAUDE_CODE"
-
+            self.adapter = self.adapters["claude"]
+            self.mode = "CLAUDE_CODE" if (bool(self.api_keys.get("claude")) and not self.use_mock) else "MOCK (Claude Code)"
         elif self.provider in ("codex", "openai", "gpt"):
             self.provider = "codex"
-            has_key = bool(api_key or os.environ.get("OPENAI_API_KEY") or os.environ.get("CODEX_API_KEY"))
-            if self.use_mock or not has_key:
-                self.adapter = MockAgentAdapter(self.workspace_path, agent_name="OpenAI Codex", model_name="gpt-4o")
-                self.mode = "MOCK (Codex)"
-            else:
-                self.adapter = CodexAgentAdapter(workspace_path=self.workspace_path, api_key=api_key)
-                self.mode = "OPENAI_CODEX"
-
-        else:  # default: gemini / antigravity
+            self.adapter = self.adapters["codex"]
+            self.mode = "OPENAI_CODEX" if (bool(self.api_keys.get("codex")) and not self.use_mock) else "MOCK (Codex)"
+        else:
             self.provider = "gemini"
-            has_key = bool(api_key or os.environ.get("GEMINI_API_KEY"))
-            if self.use_mock or not has_key:
-                self.adapter = MockAgentAdapter(self.workspace_path, agent_name="MockAntigravity", model_name="gemini-2.5-pro")
-                self.mode = "MOCK"
-            else:
-                self.adapter = AntigravityAgentAdapter(workspace_path=self.workspace_path, api_key=api_key)
-                self.mode = "ANTIGRAVITY"
+            self.adapter = self.adapters["gemini"]
+            self.mode = "ANTIGRAVITY" if (bool(self.api_keys.get("gemini")) and not self.use_mock) else "MOCK"
 
     def switch_provider(self, provider: str, api_key: Optional[str] = None) -> str:
         """Switches the active AI provider dynamically."""
+        if api_key:
+            prov_norm = "gemini" if provider in ("gemini", "antigravity") else ("claude" if provider in ("claude", "anthropic") else "codex")
+            self.api_keys[prov_norm] = api_key
+            if prov_norm == "gemini":
+                os.environ["GEMINI_API_KEY"] = api_key
+            elif prov_norm == "claude":
+                os.environ["ANTHROPIC_API_KEY"] = api_key
+                os.environ["CLAUDE_API_KEY"] = api_key
+            elif prov_norm == "codex":
+                os.environ["OPENAI_API_KEY"] = api_key
+                os.environ["CODEX_API_KEY"] = api_key
         self.provider = provider.lower()
-        self._init_adapter(api_key=api_key)
+        self._init_adapter()
         return self.mode
 
-    async def run_prompt(self, prompt: str) -> AsyncGenerator[BridgeEvent, None]:
-        async for event in self.adapter.execute_task(prompt):
+    def update_keys(self, gemini_key: str = "", claude_key: str = "", codex_key: str = ""):
+        """Updates multiple provider API keys at runtime."""
+        if gemini_key:
+            self.api_keys["gemini"] = gemini_key
+            os.environ["GEMINI_API_KEY"] = gemini_key
+        if claude_key:
+            self.api_keys["claude"] = claude_key
+            os.environ["ANTHROPIC_API_KEY"] = claude_key
+            os.environ["CLAUDE_API_KEY"] = claude_key
+        if codex_key:
+            self.api_keys["codex"] = codex_key
+            os.environ["OPENAI_API_KEY"] = codex_key
+            os.environ["CODEX_API_KEY"] = codex_key
+        self._init_adapter()
+
+    def get_adapter_for_agent(self, agent_name: str):
+        """Returns the appropriate adapter for a project's designated agent."""
+        norm = agent_name.lower()
+        if "claude" in norm:
+            return self.adapters.get("claude", self.adapter)
+        elif "codex" in norm or "openai" in norm or "gpt" in norm:
+            return self.adapters.get("codex", self.adapter)
+        return self.adapters.get("gemini", self.adapter)
+
+    async def run_prompt(self, prompt: str, agent_override: Optional[str] = None) -> AsyncGenerator[BridgeEvent, None]:
+        target_adapter = self.get_adapter_for_agent(agent_override) if agent_override else self.adapter
+        async for event in target_adapter.execute_task(prompt):
             yield event
 
     async def connect_to_relay(
@@ -585,7 +691,8 @@ class AgentBridge:
                                 prompt_text = cmd.get("prompt", "")
                                 project_id = cmd.get("project_id", "agent-relay")
                                 session_id = cmd.get("session_id", "default")
-                                print(f"Executing prompt for [{project_id}]: '{prompt_text}'")
+                                project_agent = cmd.get("agent") or self.projects.get_project_agent(project_id)
+                                print(f"Executing prompt for [{project_id}] via [{project_agent}]: '{prompt_text}'")
 
                                 # Emit task running state & terminal start
                                 await ws.send(json.dumps({
@@ -600,7 +707,7 @@ class AgentBridge:
                                 }))
                                 await ws.send(json.dumps({
                                     "event_type": "terminal_line",
-                                    "payload": {"line": f"$ agentrelay exec --project {project_id} \"{prompt_text}\""}
+                                    "payload": {"line": f"$ agentrelay exec --project {project_id} --agent {project_agent} \"{prompt_text}\""}
                                 }))
                                 await ws.send(json.dumps({
                                     "event_type": "audit_log",
@@ -608,11 +715,11 @@ class AgentBridge:
                                         "action": "PROMPT_EXECUTE",
                                         "project": project_id,
                                         "status": "ALLOWED",
-                                        "details": f"Prompt dispatched ({len(prompt_text)} chars)"
+                                        "details": f"Prompt dispatched ({len(prompt_text)} chars) to {project_agent}"
                                     }
                                 }))
 
-                                async for event in self.run_prompt(prompt_text):
+                                async for event in self.run_prompt(prompt_text, agent_override=project_agent):
                                     await ws.send(event.to_json())
                                     if event.event_type == EventType.THINKING:
                                         thought_str = event.payload.get("thought", "").strip()
@@ -647,6 +754,28 @@ class AgentBridge:
                                         "project_id": project_id,
                                         "session_id": session_id,
                                     }
+                                }))
+
+                            # Handle Update API Keys Action
+                            elif cmd_type in ("update_api_keys", "set_api_keys"):
+                                keys = cmd.get("keys", {})
+                                self.update_keys(
+                                    gemini_key=keys.get("gemini", ""),
+                                    claude_key=keys.get("claude", ""),
+                                    codex_key=keys.get("codex", "")
+                                )
+                                print(f"[*] API Keys updated. Active keys configured: {[k for k, v in self.api_keys.items() if v]}")
+                                await ws.send(json.dumps({
+                                    "event_type": "api_keys_updated",
+                                    "payload": {
+                                        "has_gemini": bool(self.api_keys.get("gemini")),
+                                        "has_claude": bool(self.api_keys.get("claude")),
+                                        "has_codex": bool(self.api_keys.get("codex")),
+                                    }
+                                }))
+                                await ws.send(json.dumps({
+                                    "event_type": "audit_log",
+                                    "payload": {"action": "API_KEYS_UPDATE", "status": "COMPLETED", "details": "Provider credentials updated dynamically"}
                                 }))
 
                             # Handle Auto-Audit Action

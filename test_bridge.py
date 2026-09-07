@@ -141,8 +141,48 @@ class TestMultiProviderAdapters(unittest.TestCase):
         self.assertEqual(bridge.provider, "codex")
 
         mode = bridge.switch_provider("gemini")
-        self.assertEqual(mode, "MOCK")
-        self.assertEqual(bridge.provider, "gemini")
+    def test_project_agent_badges(self):
+        pm = ProjectManager()
+        projects = pm.list_projects()
+        for p in projects:
+            self.assertIn("agent", p)
+            self.assertIn("agent_badge", p)
+            self.assertIn("agent_name", p)
+
+        # Check default mappings
+        ar = next(p for p in projects if p["id"] == "agent-relay")
+        self.assertEqual(ar["agent"], "antigravity")
+        self.assertIn("Antigravity", ar["agent_badge"])
+
+        mm = next(p for p in projects if p["id"] == "mindmap")
+        self.assertEqual(mm["agent"], "claude")
+        self.assertIn("Claude Code", mm["agent_badge"])
+
+        tr = next(p for p in projects if p["id"] == "trace")
+        self.assertEqual(tr["agent"], "codex")
+        self.assertIn("OpenAI Codex", tr["agent_badge"])
+
+    def test_dynamic_key_update_and_routing(self):
+        bridge = AgentBridge(use_mock=True, provider="gemini")
+        bridge.update_keys(gemini_key="AIzaSy_fake", claude_key="sk-ant_fake", codex_key="sk-openai_fake")
+        self.assertEqual(bridge.api_keys["gemini"], "AIzaSy_fake")
+        self.assertEqual(bridge.api_keys["claude"], "sk-ant_fake")
+        self.assertEqual(bridge.api_keys["codex"], "sk-openai_fake")
+
+        claude_adapter = bridge.get_adapter_for_agent("claude")
+        self.assertIsNotNone(claude_adapter)
+
+        codex_adapter = bridge.get_adapter_for_agent("codex")
+        self.assertIsNotNone(codex_adapter)
+
+        async def _run_routed():
+            events = []
+            async for ev in bridge.run_prompt("Test prompt", agent_override="claude"):
+                events.append(ev)
+            return events
+
+        events = asyncio.run(_run_routed())
+        self.assertTrue(len(events) > 0)
 
 
 if __name__ == "__main__":

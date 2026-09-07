@@ -8,6 +8,10 @@
 let ws = null;
 let deviceId = localStorage.getItem("agentrelay_device_id") || "my-pc";
 let secretToken = localStorage.getItem("agentrelay_token") || "default_secret";
+let geminiApiKey = localStorage.getItem("agentrelay_gemini_key") || "";
+let claudeApiKey = localStorage.getItem("agentrelay_claude_key") || "";
+let codexApiKey = localStorage.getItem("agentrelay_codex_key") || "";
+
 let lastSeqId = 0;
 let isDeviceOnline = false;
 let pingStartTime = 0;
@@ -17,12 +21,12 @@ let activeTab = "home"; // "home" | "terminal" | "tasks" | "logs"
 let activeProject = null;
 let activeSession = null;
 
-// Telemetry & Data Lists
+// Telemetry & Data Lists with Assigned AI Agents
 let projects = [
-  { id: "agent-relay", name: "AGENT-RELAY", lang: "Python / FastAPI", branch: "main*", has_changes: false, status_text: "Clean" },
-  { id: "mindmap", name: "MINDMAP", lang: "TypeScript / React", branch: "main", has_changes: true, status_text: "2 uncommitted files" },
-  { id: "aegic-14c", name: "AEGIC-14C", lang: "Python / PyTorch", branch: "dev*", has_changes: false, status_text: "Clean" },
-  { id: "trace", name: "TRACE", lang: "Go / Microservices", branch: "master", has_changes: true, status_text: "1 uncommitted file" },
+  { id: "agent-relay", name: "AGENT-RELAY", lang: "Python / FastAPI", agent: "antigravity", agent_name: "Antigravity", agent_badge: "⚡ Antigravity", branch: "main*", has_changes: false, status_text: "Clean" },
+  { id: "mindmap", name: "MINDMAP", lang: "TypeScript / React", agent: "claude", agent_name: "Claude Code", agent_badge: "🟠 Claude Code", branch: "main", has_changes: true, status_text: "2 uncommitted files" },
+  { id: "aegic-14c", name: "AEGIC-14C", lang: "Python / PyTorch", agent: "antigravity", agent_name: "Antigravity", agent_badge: "⚡ Antigravity", branch: "dev*", has_changes: false, status_text: "Clean" },
+  { id: "trace", name: "TRACE", lang: "Go / Microservices", agent: "codex", agent_name: "OpenAI Codex", agent_badge: "🟢 OpenAI Codex", branch: "master", has_changes: true, status_text: "1 uncommitted file" },
 ];
 
 let chatSessions = {
@@ -117,6 +121,12 @@ const btnCloseSettings = document.getElementById("btn-close-settings");
 const btnSaveSettings = document.getElementById("btn-save-settings");
 const inputDeviceId = document.getElementById("input-device-id");
 const inputSecretToken = document.getElementById("input-secret-token");
+const inputGeminiKey = document.getElementById("input-gemini-key");
+const inputClaudeKey = document.getElementById("input-claude-key");
+const inputCodexKey = document.getElementById("input-codex-key");
+const badgeGeminiKey = document.getElementById("badge-gemini-key");
+const badgeClaudeKey = document.getElementById("badge-claude-key");
+const badgeCodexKey = document.getElementById("badge-codex-key");
 
 // Bubble Elements for Streaming
 let currentAgentBubble = null;
@@ -182,6 +192,16 @@ navBtnLogs.addEventListener("click", () => switchTab("logs"));
 // =====================================================================
 // Projects & Sessions Navigation
 // =====================================================================
+function getAgentBadgeHtml(proj) {
+  const agentType = (proj.agent || "antigravity").toLowerCase();
+  if (agentType.includes("claude")) {
+    return `<span class="inline-flex items-center gap-1 text-[10px] font-semibold text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200/80">🟠 Claude Code</span>`;
+  } else if (agentType.includes("codex") || agentType.includes("openai")) {
+    return `<span class="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/80">🟢 OpenAI Codex</span>`;
+  }
+  return `<span class="inline-flex items-center gap-1 text-[10px] font-semibold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-200/80">⚡ Antigravity</span>`;
+}
+
 function renderProjectsList() {
   projectsList.innerHTML = "";
   projectCountBadge.textContent = `${projects.length} DETECTED`;
@@ -196,15 +216,18 @@ function renderProjectsList() {
       ? `<span class="inline-flex items-center gap-1 text-[10px] font-mono font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">● ${proj.status_text}</span>`
       : `<span class="inline-flex items-center gap-1 text-[10px] font-mono font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">✓ ${proj.status_text}</span>`;
 
+    const agentBadge = getAgentBadgeHtml(proj);
+
     card.innerHTML = `
       <div class="flex items-center space-x-3.5 flex-1 min-w-0">
         <div class="w-10 h-10 rounded-2xl bg-brand-50 border border-brand-100 text-brand-600 flex items-center justify-center text-base shrink-0 group-hover:bg-brand-600 group-hover:text-white transition">
           <span>📁</span>
         </div>
         <div class="min-w-0 flex-1">
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
             <h4 class="text-sm font-bold text-slate-900 truncate tracking-tight">${escapeHtml(proj.name)}</h4>
             <span class="text-[10px] font-mono text-slate-400 font-medium">[${escapeHtml(proj.branch)}]</span>
+            ${agentBadge}
           </div>
           <div class="flex items-center gap-2 mt-1">
             <span class="text-[11px] text-slate-500 font-mono">${escapeHtml(proj.lang)}</span>
@@ -225,7 +248,8 @@ function renderProjectsList() {
 
 function openProject(proj) {
   activeProject = proj;
-  sessionsProjectBadge.textContent = `${proj.name} [${proj.branch}]`;
+  const agentBadge = getAgentBadgeHtml(proj);
+  sessionsProjectBadge.innerHTML = `<span class="font-bold text-slate-900">${escapeHtml(proj.name)}</span> <span class="text-slate-400 font-normal">[${escapeHtml(proj.branch)}]</span> • ${agentBadge}`;
   renderProjectSessions(proj.id);
   viewHome.classList.add("hidden");
   viewChat.classList.add("hidden");
@@ -301,6 +325,8 @@ btnStartNewChat.addEventListener("click", () => {
 function openChatSession(session) {
   activeSession = session;
   chatProjectTitle.textContent = `${activeProject.name} [${activeProject.branch}]`;
+  const agentBadgeStr = activeProject.agent_badge || "⚡ Antigravity";
+  chatAgentStatus.textContent = `${agentBadgeStr} Agent`;
   viewProjectSessions.classList.add("hidden");
   viewHome.classList.add("hidden");
   viewChat.classList.remove("hidden");
@@ -309,9 +335,9 @@ function openChatSession(session) {
   if (chatFeed.children.length === 0) {
     chatFeed.innerHTML = `
       <div class="bg-white border border-slate-200/80 rounded-2xl p-4 text-center text-slate-500 text-xs shadow-card space-y-1 my-2">
-        <div class="text-xl mb-1">⚡ 📱 💻</div>
+        <div class="text-xl mb-1">${agentBadgeStr.split(" ")[0]} 📱 💻</div>
         <div class="font-bold text-slate-800 text-sm">${escapeHtml(activeProject.name)}</div>
-        <p class="leading-relaxed text-slate-500">Workspace connected. Type an instruction below to execute tasks with Antigravity.</p>
+        <p class="leading-relaxed text-slate-500">Workspace connected. Running via <b>${escapeHtml(agentBadgeStr)}</b> engine.</p>
       </div>
     `;
   }
@@ -440,6 +466,7 @@ function connectWebSocket() {
   ws.onopen = () => {
     console.log("🟢 Connected to AgentRelay Gateway");
     startHeartbeatPing();
+    syncApiKeysToBridge();
   };
 
   ws.onmessage = (event) => {
@@ -785,6 +812,7 @@ promptForm.addEventListener("submit", (e) => {
     prompt: text,
     project_id: activeProject ? activeProject.id : "agent-relay",
     session_id: activeSession ? activeSession.id : "default",
+    agent: activeProject ? (activeProject.agent || "antigravity") : "antigravity",
   }));
 });
 
@@ -824,17 +852,67 @@ btnReconnect.addEventListener("click", () => {
   connectWebSocket();
 });
 
+// Settings & API Key Helpers
+function updateKeyBadges() {
+  if (badgeGeminiKey) {
+    badgeGeminiKey.textContent = geminiApiKey ? "✓ Configured" : "Not set";
+    badgeGeminiKey.className = geminiApiKey ? "text-[9px] font-mono text-emerald-600 font-bold" : "text-[9px] font-mono text-slate-400";
+  }
+  if (badgeClaudeKey) {
+    badgeClaudeKey.textContent = claudeApiKey ? "✓ Configured" : "Not set";
+    badgeClaudeKey.className = claudeApiKey ? "text-[9px] font-mono text-emerald-600 font-bold" : "text-[9px] font-mono text-slate-400";
+  }
+  if (badgeCodexKey) {
+    badgeCodexKey.textContent = codexApiKey ? "✓ Configured" : "Not set";
+    badgeCodexKey.className = codexApiKey ? "text-[9px] font-mono text-emerald-600 font-bold" : "text-[9px] font-mono text-slate-400";
+  }
+}
+
+function syncApiKeysToBridge() {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({
+      type: "update_api_keys",
+      keys: {
+        gemini: geminiApiKey,
+        claude: claudeApiKey,
+        codex: codexApiKey,
+      }
+    }));
+  }
+}
+
 // Settings Modal Handlers
-btnSettings.addEventListener("click", () => settingsModal.classList.remove("hidden"));
+btnSettings.addEventListener("click", () => {
+  inputDeviceId.value = deviceId;
+  inputSecretToken.value = secretToken;
+  if (inputGeminiKey) inputGeminiKey.value = geminiApiKey;
+  if (inputClaudeKey) inputClaudeKey.value = claudeApiKey;
+  if (inputCodexKey) inputCodexKey.value = codexApiKey;
+  updateKeyBadges();
+  settingsModal.classList.remove("hidden");
+});
+
 btnCloseSettings.addEventListener("click", () => settingsModal.classList.add("hidden"));
+
 btnSaveSettings.addEventListener("click", () => {
   deviceId = inputDeviceId.value.trim() || "my-pc";
   secretToken = inputSecretToken.value.trim() || "default_secret";
+  geminiApiKey = inputGeminiKey ? inputGeminiKey.value.trim() : geminiApiKey;
+  claudeApiKey = inputClaudeKey ? inputClaudeKey.value.trim() : claudeApiKey;
+  codexApiKey = inputCodexKey ? inputCodexKey.value.trim() : codexApiKey;
+
   localStorage.setItem("agentrelay_device_id", deviceId);
   localStorage.setItem("agentrelay_token", secretToken);
+  localStorage.setItem("agentrelay_gemini_key", geminiApiKey);
+  localStorage.setItem("agentrelay_claude_key", claudeApiKey);
+  localStorage.setItem("agentrelay_codex_key", codexApiKey);
+
   deviceNameDisplay.textContent = deviceId.toUpperCase();
   telemetryDevice.textContent = deviceId.toUpperCase();
+  updateKeyBadges();
   settingsModal.classList.add("hidden");
+
+  syncApiKeysToBridge();
   connectWebSocket();
 });
 
@@ -856,8 +934,12 @@ function formatTimeAgo(ts) {
 // Initial Boot
 inputDeviceId.value = deviceId;
 inputSecretToken.value = secretToken;
+if (inputGeminiKey) inputGeminiKey.value = geminiApiKey;
+if (inputClaudeKey) inputClaudeKey.value = claudeApiKey;
+if (inputCodexKey) inputCodexKey.value = codexApiKey;
 deviceNameDisplay.textContent = deviceId.toUpperCase();
 telemetryDevice.textContent = deviceId.toUpperCase();
+updateKeyBadges();
 
 renderProjectsList();
 connectWebSocket();
