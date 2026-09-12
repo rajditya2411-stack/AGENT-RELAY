@@ -1,542 +1,1335 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#ffffff">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>AgentRelay — Remote Agent Console</title>
-  
-  <!-- Fonts: Inter & JetBrains Mono -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+  <meta name="theme-color" content="#f8f9ff"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <title>AgentRelay — Tactile Remote Agent Console & Security Shield</title>
 
-  <!-- Tailwind CSS via CDN -->
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+
+  <!-- Tailwind CSS via CDN with Tactile Relay Design System Tokens -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
+  <script id="tailwind-config">
     tailwind.config = {
-      darkMode: 'class',
+      darkMode: "class",
       theme: {
         extend: {
-          fontFamily: {
-            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
-            mono: ['"JetBrains Mono"', 'monospace'],
-          },
           colors: {
-            canvas: '#F8FAFC',
-            card: '#FFFFFF',
-            brand: {
-              50: '#EEF2FF',
-              100: '#E0E7FF',
-              500: '#6366F1',
-              600: '#4F46E5',
-              700: '#4338CA',
+            "primary": "#3525cd",
+            "primary-container": "#4f46e5",
+            "on-primary": "#ffffff",
+            "on-primary-container": "#dad7ff",
+            "inverse-primary": "#c3c0ff",
+            "secondary": "#565e74",
+            "secondary-container": "#dae2fd",
+            "on-secondary-container": "#5c647a",
+            "tertiary": "#005338",
+            "tertiary-container": "#006e4b",
+            "on-tertiary-container": "#67f4b7",
+            "tertiary-fixed": "#6ffbbe",
+            "tertiary-fixed-dim": "#4edea3",
+            "error": "#ba1a1a",
+            "error-container": "#ffdad6",
+            "surface": "#f8f9ff",
+            "surface-dim": "#cbdbf5",
+            "surface-bright": "#f8f9ff",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-low": "#eff4ff",
+            "surface-container": "#e5eeff",
+            "surface-container-high": "#dce9ff",
+            "surface-container-highest": "#d3e4fe",
+            "on-surface": "#0b1c30",
+            "on-surface-variant": "#464555",
+            "inverse-surface": "#213145",
+            "inverse-on-surface": "#eaf1ff",
+            "outline": "#777587",
+            "outline-variant": "#c7c4d8",
+            "brand": {
+              50: "#eef2ff",
+              100: "#e0e7ff",
+              500: "#6366f1",
+              600: "#4f46e5",
+              700: "#4338ca",
             }
           },
+          fontFamily: {
+            "sans": ["Inter", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
+            "mono": ["JetBrains Mono", "monospace"],
+            "body-base": ["Inter"],
+            "mono-base": ["JetBrains Mono"],
+            "headline-sm": ["Inter"],
+            "headline-md": ["Inter"],
+            "mono-xs": ["JetBrains Mono"],
+            "mono-sm": ["JetBrains Mono"],
+            "badge-caps": ["JetBrains Mono"]
+          },
+          spacing: {
+            "xs": "4px",
+            "sm": "8px",
+            "md": "12px",
+            "lg": "16px",
+            "xl": "20px",
+            "2xl": "24px",
+            "3xl": "32px",
+            "gutter": "16px",
+            "layout-max-width": "576px"
+          },
           boxShadow: {
-            'card': '0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.03)',
-            'pill': '0 2px 10px -1px rgba(15, 23, 42, 0.08)',
-            'input': '0 4px 24px -2px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(15, 23, 42, 0.04)',
-            'nav': '0 -4px 20px -2px rgba(15, 23, 42, 0.04)',
+            "tactile": "0 2px 8px -1px rgba(15, 23, 42, 0.04), 0 0 0 1px rgba(226, 232, 240, 0.8) inset, 0 1px 0 0 rgba(255, 255, 255, 0.9)",
+            "card": "0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 1px 3px -1px rgba(15, 23, 42, 0.04)",
+            "obsidian": "0 12px 32px -4px rgba(2, 6, 23, 0.25), 0 0 0 1px rgba(30, 41, 59, 0.8)",
+            "dock": "0 -2px 12px rgba(15, 23, 42, 0.05)"
           }
         }
       }
-    }
+    };
   </script>
-
   <style>
-    body {
-      touch-action: manipulation;
-      -webkit-tap-highlight-color: transparent;
-      overscroll-behavior-y: none;
+    @layer base {
+      html, body { width: 100vw; margin: 0; padding: 0; }
+      body { overscroll-behavior-y: none; min-height: max(884px, 100dvh); }
+      .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+      .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
     }
-    .custom-scrollbar::-webkit-scrollbar {
-      width: 4px;
-      height: 4px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: #CBD5E1;
-      border-radius: 4px;
-    }
-    @keyframes pulse-subtle {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.5; transform: scale(0.92); }
-    }
-    .animate-pulse-subtle {
-      animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
+    ::-webkit-scrollbar { display: none; }
   </style>
 </head>
-<body class="bg-canvas text-slate-900 flex flex-col h-[100dvh] w-full font-sans overflow-hidden select-none antialiased">
+<body class="bg-surface font-sans text-on-surface flex flex-col min-h-screen antialiased select-none">
 
-  <!-- ================= TOP HEADER (Matching Stitch Mockup) ================= -->
-  <header class="bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 py-2.5 z-30 shrink-0">
-    <div class="max-w-xl mx-auto flex items-center justify-between">
-      
-      <!-- Brand & Device Status Pill -->
-      <div class="flex items-center space-x-3">
-        <!-- Logo -->
-        <div class="w-8 h-8 rounded-xl bg-slate-900 text-amber-400 flex items-center justify-center shadow-md shadow-slate-900/10">
-          <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
-            <path d="M13 2L3 14h8l-2 8 10-12h-8l2-8z"/>
-          </svg>
+  <!-- ========================================== -->
+  <!-- 1. TOP TELEMETRY HEADER WITH SECURITY STATUS -->
+  <!-- ========================================== -->
+  <header class="fixed top-0 inset-x-0 z-50 bg-surface/90 backdrop-blur-xl pt-safe shadow-[0_1px_8px_rgba(15,23,42,0.05)] border-b border-surface-container-high/60">
+    <div class="px-gutter flex flex-col justify-center max-w-layout-max-width mx-auto w-full py-2.5 gap-1.5">
+      <div class="flex items-center justify-between">
+        <!-- Logo & Active View Title -->
+        <div class="flex items-center gap-sm">
+          <div class="w-8 h-8 rounded-xl bg-primary flex items-center justify-center text-on-primary shadow-sm shadow-primary/30 cursor-pointer" onclick="switchTab('home')">
+            <span class="material-symbols-outlined text-[20px]">bolt</span>
+          </div>
+          <div class="flex flex-col">
+            <div class="flex items-center gap-xs">
+              <span class="font-headline-sm text-sm tracking-tight text-on-surface uppercase font-bold">AgentRelay</span>
+              <button id="header-agent-badge" class="flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-indigo-50/80 border border-indigo-200/70 text-indigo-700 font-mono text-[10px] font-semibold">
+                <span id="current-agent-text" class="truncate max-w-[84px]">Claude Code</span>
+                <span class="material-symbols-outlined text-[13px]">arrow_drop_down</span>
+              </button>
+            </div>
+            <span id="header-sub-title" class="font-mono text-[11px] text-on-surface-variant font-medium">Remote Control &amp; Shield</span>
+          </div>
         </div>
-        <span class="text-sm font-extrabold tracking-tight text-slate-900">AgentRelay</span>
 
-        <!-- Device Status Pill (Matching Mockup) -->
-        <div id="device-pill" class="inline-flex items-center gap-1.5 text-[11px] font-mono font-semibold text-slate-700 bg-slate-100/90 border border-slate-200/90 px-2.5 py-1 rounded-full shadow-sm">
-          <span id="status-dot" class="w-2 h-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></span>
-          <span id="device-name-display">MY-PC</span>
-          <span id="status-text" class="text-emerald-700 text-[10px] font-bold">ONLINE</span>
+        <!-- Right Side: Live Pairing Pill, Settings, User Profile -->
+        <div class="flex items-center gap-xs">
+          <button id="header-status-pill" onclick="connectWebSocket()" title="Click to reconnect" class="flex items-center gap-xs px-2.5 py-1 rounded-full bg-surface-container-lowest shadow-[0_1px_4px_rgba(15,23,42,0.06)] border border-surface-container-high/70 active:scale-95 transition">
+            <span class="relative flex h-2 w-2">
+              <span id="status-dot-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary-fixed-dim opacity-75"></span>
+              <span id="status-dot" class="relative inline-flex rounded-full h-2 w-2 bg-tertiary-container"></span>
+            </span>
+            <span id="status-text" class="font-mono text-[10px] text-on-surface font-semibold tracking-wider uppercase">MY-PC ONLINE</span>
+          </button>
+          <button id="btn-settings" aria-label="Settings" class="w-8 h-8 rounded-full flex items-center justify-center bg-surface-container-lowest text-on-surface-variant shadow-[0_1px_4px_rgba(15,23,42,0.06)] border border-surface-container-high/70 transition-transform active:scale-95">
+            <span class="material-symbols-outlined text-[18px]">settings</span>
+          </button>
+          <div class="w-8 h-8 rounded-full bg-primary-container text-on-primary flex items-center justify-center shadow-[0_2px_6px_rgba(79,70,229,0.3)]">
+            <span class="material-symbols-outlined text-[18px]">person</span>
+          </div>
         </div>
       </div>
 
-      <!-- Action Buttons: Settings & Profile Avatar -->
-      <div class="flex items-center space-x-2">
-        <!-- Settings Gear -->
-        <button id="btn-settings" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-slate-200/80 flex items-center justify-center text-slate-600 hover:text-slate-900 transition active:scale-95 shadow-sm" title="Device Settings">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-          </svg>
-        </button>
-
-        <!-- User Profile Avatar (Matching Stitch Purple Pill) -->
-        <button id="btn-profile" class="w-8 h-8 rounded-xl bg-brand-600 hover:bg-brand-700 text-white flex items-center justify-center font-bold text-xs shadow-md shadow-brand-600/30 transition active:scale-95" title="User Profile">
-          <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
-          </svg>
-        </button>
+      <!-- Sub-bar Status Bar: Sandbox & TLS Badge -->
+      <div class="flex items-center justify-between pt-0.5">
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-surface-container-lowest text-tertiary border border-slate-200/90 shadow-sm">
+          <span class="relative flex h-1.5 w-1.5">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary-fixed-dim opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-tertiary"></span>
+          </span>
+          <span class="font-mono text-[10px] font-bold tracking-wide uppercase">🛡️ Sandbox Active</span>
+          <span class="font-mono text-[10px] text-on-surface-variant pl-0.5 font-medium">Strict Enforcement</span>
+        </div>
+        <div class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-container-lowest border border-slate-200/90 text-primary font-mono text-[10px] font-semibold shadow-xs">
+          <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+          <span>TLS:v1.3</span>
+        </div>
       </div>
-
     </div>
   </header>
 
-  <!-- ================= DEVICE OFFLINE ALERT BANNER ================= -->
-  <div id="offline-banner" class="hidden bg-rose-50 border-b border-rose-200 px-4 py-2 text-xs text-rose-700 flex items-center justify-between shrink-0 z-20">
-    <div class="flex items-center gap-2">
-      <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse-subtle"></span>
-      <span class="font-bold">DEVICE OFFLINE:</span>
-      <span class="text-rose-600/90 text-[11px]">Desktop bridge is disconnected or asleep.</span>
-    </div>
-    <button id="btn-reconnect" class="bg-rose-600 hover:bg-rose-700 text-white font-semibold px-2.5 py-1 rounded-lg text-[11px] transition shadow-sm active:scale-95">
-      Retry
-    </button>
-  </div>
+  <!-- ========================================== -->
+  <!-- MAIN STAGE CONTAINER -->
+  <!-- ========================================== -->
+  <main class="flex flex-col relative w-full px-gutter pt-24 pb-28 bg-surface max-w-layout-max-width mx-auto flex-1">
 
-  <!-- ================= MAIN SCROLLABLE CONTAINER ================= -->
-  <main class="flex-1 overflow-y-auto custom-scrollbar relative flex flex-col">
-    
-    <!-- ============================================================== -->
-    <!-- TAB 1: HOME VIEW (WELCOME CARD + PROJECTS BROWSER)            -->
-    <!-- ============================================================== -->
-    <div id="view-home" class="p-4 space-y-4 max-w-xl w-full mx-auto pb-24">
-      
-      <!-- WELCOME CARD (Styled exactly to Stitch Mockup) -->
-      <div class="bg-white border border-slate-200/90 rounded-3xl p-4 shadow-card space-y-3.5">
-        
-        <!-- Header row: Flow Diagram Pills & Bridge Sync Badge -->
-        <div class="flex items-center justify-between">
-          <!-- Flow Pills: ⚡ -> 📱 <-> 💻 -->
-          <div class="inline-flex items-center gap-1.5 bg-brand-50 border border-brand-100 px-2.5 py-1 rounded-full text-xs text-brand-700 font-mono font-medium">
-            <span class="w-5 h-5 rounded-full bg-brand-600 text-amber-300 flex items-center justify-center text-[10px]">⚡</span>
-            <span class="text-slate-400">→</span>
-            <span>📱</span>
-            <span class="text-slate-400">⇄</span>
-            <span>💻</span>
-          </div>
-
-          <!-- Bridge Sync Status Badge -->
-          <div class="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold text-emerald-700 tracking-wider">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>BRIDGE SYNC</span>
-          </div>
+    <!-- ========================================== -->
+    <!-- IN-FLOW DISMISSIBLE OFFLINE ALERT CARD     -->
+    <!-- ========================================== -->
+    <div id="offline-banner" class="hidden w-full mb-3 bg-error-container/90 text-on-error-container border border-error/30 rounded-2xl p-3 shadow-tactile flex items-center justify-between gap-2 transition-all">
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="material-symbols-outlined text-error text-[20px] shrink-0">wifi_off</span>
+        <div class="flex flex-col min-w-0">
+          <span class="font-headline-sm text-xs font-bold text-on-surface truncate">Desktop Bridge Disconnected</span>
+          <span class="font-mono text-[10px] text-error font-medium">Click reconnect or run local bridge</span>
         </div>
-
-        <!-- Headline & Subtitle -->
-        <div class="space-y-1">
-          <h2 class="text-lg font-extrabold text-slate-900 tracking-tight">Welcome to AgentRelay</h2>
-          <p class="text-xs text-slate-500 leading-relaxed">
-            Select a project below or launch a chat to control and stream coding agents from your computer.
-          </p>
-        </div>
-
-        <!-- Dark Telemetry Card (Matching Stitch UI with Domain Metrics) -->
-        <div class="bg-slate-950 text-white rounded-2xl p-3.5 space-y-3 border border-slate-800 shadow-inner">
-          
-          <!-- Top Row: Connection Info -->
-          <div class="flex items-center justify-between text-xs pb-2 border-b border-slate-800/80">
-            <div class="flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-              <span class="font-semibold text-slate-200 font-mono text-[11px]">Connected to <span id="telemetry-device">MY-PC</span></span>
-            </div>
-            <span class="text-[10px] text-slate-400 font-mono">ws://127.0.0.1:58765</span>
-          </div>
-
-          <!-- 3 Telemetry Columns (Active Projects, Token Cache Savings, RTT Latency) -->
-          <div class="grid grid-cols-3 gap-2 text-center pt-0.5">
-            
-            <!-- Col 1: Active Projects -->
-            <div class="space-y-1 text-left">
-              <div class="text-[9px] font-mono uppercase tracking-wider text-slate-400">Total Projects</div>
-              <div id="telemetry-projects-val" class="text-xs font-bold font-mono text-slate-100">4 Linked</div>
-              <div class="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
-                <div class="bg-emerald-400 h-full w-[80%] rounded-full"></div>
-              </div>
-            </div>
-
-            <!-- Col 2: Token Savings -->
-            <div class="space-y-1 text-left">
-              <div class="text-[9px] font-mono uppercase tracking-wider text-slate-400">Cache Saved</div>
-              <div id="telemetry-cache-val" class="text-xs font-bold font-mono text-brand-300">⚡ 128 (33%)</div>
-              <div class="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
-                <div class="bg-brand-500 h-full w-[65%] rounded-full"></div>
-              </div>
-            </div>
-
-            <!-- Col 3: RTT Latency -->
-            <div class="space-y-1 text-left">
-              <div class="text-[9px] font-mono uppercase tracking-wider text-slate-400">RTT Latency</div>
-              <div id="telemetry-latency-val" class="text-xs font-bold font-mono text-emerald-400">24ms</div>
-              <div class="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
-                <div class="bg-emerald-400 h-full w-[90%] rounded-full"></div>
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-
       </div>
-
-      <!-- ACTIVE PROJECTS LIST (Replaces Suggested Directives on Home Page) -->
-      <div class="space-y-3 pt-1">
-        <div class="flex items-center justify-between px-1">
-          <div class="flex items-center gap-2">
-            <span class="text-sm">📁</span>
-            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Active Repositories</h3>
-          </div>
-          <span id="project-count-badge" class="text-[10px] font-mono font-bold text-brand-700 bg-brand-50 border border-brand-100 px-2 py-0.5 rounded-full">4 DETECTED</span>
-        </div>
-
-        <!-- Project Cards Container -->
-        <div id="projects-list" class="space-y-2.5"></div>
-      </div>
-
-    </div>
-
-    <!-- ============================================================== -->
-    <!-- TAB 1.5: PROJECT SESSIONS VIEW (MODAL / OVERLAY VIEW)         -->
-    <!-- ============================================================== -->
-    <div id="view-project-sessions" class="hidden p-4 space-y-4 max-w-xl w-full mx-auto pb-24">
-      <!-- Top Navigation & Details -->
-      <div class="flex items-center justify-between">
-        <button id="btn-back-to-projects" class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 px-3 py-1.5 rounded-full shadow-sm active:scale-95 transition">
-          <span>←</span> Back to Projects
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button id="btn-reconnect" class="bg-error text-on-error px-2.5 py-1 rounded-full text-[10px] font-mono font-bold uppercase active:scale-95 transition shadow-sm">
+          Reconnect
         </button>
-        <span id="sessions-project-badge" class="text-xs font-mono font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
-          agent-relay [main*]
+        <button id="btn-dismiss-banner" aria-label="Dismiss banner" class="w-6 h-6 rounded-full flex items-center justify-center text-on-error-container/70 hover:text-on-error-container hover:bg-error/10 active:scale-90 transition">
+          <span class="material-symbols-outlined text-[16px]">close</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ---------------------------------------- -->
+    <!-- VIEW 1: HOME (MULTI-PROJECT HUB)        -->
+    <!-- ---------------------------------------- -->
+    <section id="view-home" class="flex flex-col w-full space-y-4">
+      <!-- Telemetry Dashboard Card -->
+      <div class="bg-surface-container-lowest rounded-3xl p-4 shadow-card border border-outline-variant/40 space-y-3">
+        <div class="flex items-center justify-between pb-2 border-b border-surface-container">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-lg">router</span>
+            <span class="text-xs font-bold text-on-surface uppercase tracking-wider font-mono">Relay Bridge Status</span>
+          </div>
+          <span id="telemetry-device" class="text-[10px] font-mono font-bold text-primary bg-primary-container/10 px-2 py-0.5 rounded-full border border-primary-container/20">
+            MY-PC
+          </span>
+        </div>
+        <div class="grid grid-cols-3 gap-2 text-center font-mono">
+          <div class="bg-surface-container-low p-2.5 rounded-2xl">
+            <span class="block text-[10px] text-on-surface-variant">Linked</span>
+            <span id="telemetry-projects-val" class="text-xs font-bold text-on-surface">4 Projects</span>
+          </div>
+          <div class="bg-surface-container-low p-2.5 rounded-2xl">
+            <span class="block text-[10px] text-on-surface-variant">Cache</span>
+            <span id="telemetry-cache-val" class="text-xs font-bold text-tertiary">⚡ 0 cached</span>
+          </div>
+          <div class="bg-surface-container-low p-2.5 rounded-2xl">
+            <span class="block text-[10px] text-on-surface-variant">Latency</span>
+            <span id="telemetry-latency-val" class="text-xs font-bold text-primary">18ms</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Projects Section Header -->
+      <div class="flex items-center justify-between px-1">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-base text-primary">folder_open</span>
+          <h3 class="text-sm font-bold text-on-surface tracking-tight">Active Workspaces</h3>
+        </div>
+        <span id="project-count-badge" class="text-[10px] font-mono font-bold text-on-surface-variant bg-surface-container-high px-2 py-0.5 rounded-full">
+          4 DETECTED
         </span>
       </div>
 
-      <!-- Start New Chat Banner / Button -->
-      <div class="bg-white border border-slate-200/90 rounded-3xl p-4 shadow-card flex items-center justify-between">
-        <div>
-          <h4 class="text-sm font-bold text-slate-900">Start a New Conversation</h4>
-          <p class="text-xs text-slate-500">Launch a clean agent turn for this repository.</p>
-        </div>
-        <button id="btn-start-new-chat" class="flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-3.5 py-2 rounded-2xl shadow-md shadow-brand-600/30 transition active:scale-95 shrink-0">
-          <span>+</span> New Chat
+      <!-- Dynamic Project Cards List -->
+      <div id="projects-list" class="space-y-3">
+        <!-- Injected via app.js -->
+      </div>
+    </section>
+
+    <!-- ---------------------------------------- -->
+    <!-- VIEW 2: PROJECT SESSIONS LIST           -->
+    <!-- ---------------------------------------- -->
+    <section id="view-project-sessions" class="hidden flex flex-col w-full space-y-4">
+      <div class="flex items-center justify-between">
+        <button id="btn-back-to-projects" class="flex items-center gap-1 text-xs font-bold text-primary active:scale-95 transition">
+          <span class="material-symbols-outlined text-sm">arrow_back</span>
+          <span>Back to Projects</span>
+        </button>
+        <button id="btn-start-new-chat" class="flex items-center gap-1 bg-primary text-on-primary px-3 py-1.5 rounded-full text-xs font-bold shadow-md active:scale-95 transition">
+          <span class="material-symbols-outlined text-sm">add</span>
+          <span>New Chat</span>
         </button>
       </div>
 
-      <!-- Past Sessions List -->
-      <div class="space-y-2.5">
-        <div class="text-xs font-bold text-slate-800 uppercase tracking-wider px-1">Recent Sessions</div>
-        <div id="sessions-list-container" class="space-y-2"></div>
-      </div>
-    </div>
-
-    <!-- ============================================================== -->
-    <!-- TAB 1.8: ACTIVE CHAT VIEW (WORKSPACE CONVERSATION)           -->
-    <!-- ============================================================== -->
-    <div id="view-chat" class="hidden flex-1 flex flex-col h-full overflow-hidden select-text">
-      
-      <!-- Chat Subheader -->
-      <div class="bg-white/80 backdrop-blur-sm border-b border-slate-200/70 px-4 py-2 flex items-center justify-between shrink-0">
-        <div class="flex items-center gap-2">
-          <button id="btn-back-to-sessions" class="text-slate-400 hover:text-slate-700 text-sm font-bold p-1">←</button>
-          <span id="chat-project-chip" class="inline-flex items-center gap-1 text-[11px] font-mono text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/70">
-            <span>📁</span> <span id="chat-project-title">agent-relay [main*]</span>
-          </span>
+      <div class="bg-surface-container-lowest rounded-2xl p-3 shadow-tactile border border-outline-variant/40 flex items-center justify-between">
+        <div id="sessions-project-badge" class="text-xs text-on-surface truncate">
+          <!-- Injected via app.js -->
         </div>
-        <div id="chat-agent-status" class="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-          <span>Ready</span>
+      </div>
+
+      <div id="sessions-list-container" class="space-y-2.5">
+        <!-- Injected via app.js -->
+      </div>
+    </section>
+
+    <!-- ---------------------------------------- -->
+    <!-- VIEW 3: CHAT / AGENT STREAM STAGE       -->
+    <!-- ---------------------------------------- -->
+    <section id="view-chat" class="hidden flex flex-col w-full space-y-3">
+      <!-- Chat Header Bar -->
+      <div class="flex items-center justify-between bg-surface-container-lowest rounded-2xl p-3 shadow-tactile border border-outline-variant/40">
+        <button id="btn-back-to-sessions" class="flex items-center gap-1 text-xs font-bold text-primary active:scale-95 transition">
+          <span class="material-symbols-outlined text-sm">arrow_back</span>
+          <span>Sessions</span>
+        </button>
+        <div class="flex items-center gap-2">
+          <span id="chat-project-title" class="text-xs font-bold text-on-surface truncate max-w-[140px]">AGENT-RELAY</span>
+          <span id="chat-agent-status" class="text-[10px] font-mono font-semibold text-tertiary bg-tertiary-container/10 px-2 py-0.5 rounded-full border border-tertiary-container/30">
+            Ready
+          </span>
         </div>
       </div>
 
       <!-- Chat Feed -->
-      <div id="chat-feed" class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4 max-w-xl w-full mx-auto select-text"></div>
+      <div id="chat-feed" class="flex flex-col space-y-3 min-h-[300px] max-h-[50vh] overflow-y-auto p-1">
+        <!-- Injected via app.js -->
+      </div>
 
-      <!-- TACTILE QUICK ACTIONS BAR (TRANSFERRED INSIDE CHAT WINDOW) -->
-      <div id="chat-quick-actions" class="px-4 py-2 max-w-xl w-full mx-auto flex items-center gap-2 overflow-x-auto custom-scrollbar shrink-0 z-20">
-        <button id="btn-auto-audit" class="flex items-center gap-1.5 bg-white hover:bg-slate-50 text-indigo-700 border border-slate-200/90 shadow-pill text-xs font-semibold px-3 py-1.5 rounded-full transition active:scale-95 whitespace-nowrap">
-          <span>🔍</span> Auto-Audit &amp; Resume
+      <!-- Quick Action Tactile Pills -->
+      <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <button id="btn-auto-audit" class="flex items-center gap-1 bg-surface-container-lowest px-3 py-1.5 rounded-full shadow-tactile text-[11px] font-semibold text-on-surface active:scale-95 transition shrink-0">
+          <span>🔍</span> Auto-Audit
         </button>
-        <button id="btn-undo-changes" class="flex items-center gap-1.5 bg-white hover:bg-slate-50 text-rose-600 border border-slate-200/90 shadow-pill text-xs font-semibold px-3 py-1.5 rounded-full transition active:scale-95 whitespace-nowrap">
+        <button id="btn-undo-changes" class="flex items-center gap-1 bg-surface-container-lowest px-3 py-1.5 rounded-full shadow-tactile text-[11px] font-semibold text-error active:scale-95 transition shrink-0">
           <span>↩️</span> Undo Changes
         </button>
-        <button id="btn-run-tests" class="flex items-center gap-1.5 bg-white hover:bg-slate-50 text-emerald-700 border border-slate-200/90 shadow-pill text-xs font-semibold px-3 py-1.5 rounded-full transition active:scale-95 whitespace-nowrap">
+        <button id="btn-run-tests" class="flex items-center gap-1 bg-surface-container-lowest px-3 py-1.5 rounded-full shadow-tactile text-[11px] font-semibold text-tertiary active:scale-95 transition shrink-0">
           <span>🧪</span> Run Tests
         </button>
-        <button id="btn-clear-chat" class="flex items-center gap-1 bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 border border-slate-200/80 shadow-pill text-xs font-medium px-2.5 py-1.5 rounded-full transition active:scale-95 ml-auto whitespace-nowrap">
-          <span>🗑️</span> Clear
+        <button id="btn-clear-chat" class="flex items-center gap-1 bg-surface-container-lowest px-3 py-1.5 rounded-full shadow-tactile text-[11px] font-semibold text-on-surface-variant active:scale-95 transition shrink-0">
+          <span>🧹</span> Clear Feed
         </button>
       </div>
 
-      <!-- FLOATING CONSOLE INPUT (Inside Chat) -->
-      <div class="bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-4 py-3 shrink-0 z-30 pb-20">
-        <div class="max-w-xl mx-auto">
-          <form id="prompt-form" class="relative flex items-center bg-slate-900 text-white rounded-full pl-4 pr-1.5 py-1.5 shadow-input border border-slate-800">
-            <input
-              id="prompt-input"
-              type="text"
-              placeholder="Instruct agent on your computer..."
-              autocomplete="off"
-              class="flex-1 bg-transparent text-sm text-slate-100 placeholder-slate-400 focus:outline-none pr-2"
-            />
-            <div class="flex items-center gap-1.5 shrink-0">
-              <button
-                type="button"
-                id="btn-stop"
-                class="w-8 h-8 rounded-full bg-slate-800 hover:bg-rose-600 text-slate-400 hover:text-white flex items-center justify-center transition active:scale-95"
-                title="Emergency Stop"
-              >
-                <span class="w-2.5 h-2.5 rounded-sm bg-current"></span>
-              </button>
-              <button
-                type="submit"
-                id="btn-send"
-                class="w-8 h-8 rounded-full bg-brand-600 hover:bg-brand-500 active:scale-95 text-white flex items-center justify-center transition shadow-md shadow-brand-500/30 disabled:opacity-40 disabled:pointer-events-none"
-                title="Send Prompt"
-              >
-                <svg class="w-3.5 h-3.5 translate-x-0.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path>
-                </svg>
-              </button>
+      <!-- Floating Command Dispatch Capsule -->
+      <div class="bg-inverse-surface rounded-2xl p-2 shadow-obsidian">
+        <form id="prompt-form" class="flex items-center gap-2">
+          <input id="prompt-input" autocomplete="off" class="flex-1 bg-transparent text-inverse-on-surface placeholder:text-outline text-xs font-mono px-3 py-2 focus:outline-none min-w-0" placeholder="Instruct agent (e.g. 'Refactor auth controller')..." type="text"/>
+          <button id="btn-stop" type="button" aria-label="Cancel Task" class="w-8 h-8 rounded-full bg-surface-container-highest/30 hover:bg-error text-inverse-on-surface flex items-center justify-center active:scale-95 transition shrink-0">
+            <span class="material-symbols-outlined text-[16px]">stop</span>
+          </button>
+          <button id="btn-send" type="submit" aria-label="Send Directive" class="w-8 h-8 rounded-full bg-primary-container text-on-primary flex items-center justify-center active:scale-95 transition shadow-md shrink-0">
+            <span class="material-symbols-outlined text-[16px]">arrow_upward</span>
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ---------------------------------------- -->
+    <!-- VIEW 4: LIVE TERMINAL                   -->
+    <!-- ---------------------------------------- -->
+    <section id="view-terminal" class="hidden flex flex-col w-full space-y-3">
+      <!-- Top Context & Live Telemetry Pill Card -->
+      <div class="flex flex-col bg-surface-container-lowest rounded-2xl p-md shadow-tactile border border-outline-variant/40">
+        <div class="flex items-center justify-between gap-sm mb-xs">
+          <div class="flex items-center gap-xs">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-on-tertiary-container opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-tertiary-container"></span>
+            </span>
+            <span class="font-mono text-xs font-semibold text-on-surface">MY-PC</span>
+            <span class="font-mono text-xs text-outline px-xs">/</span>
+            <span class="font-mono text-xs text-on-surface-variant truncate max-w-[130px]">mindmap-backend</span>
+            <span class="bg-surface-container-high px-xs py-0.5 rounded text-on-primary-fixed-variant font-mono text-[10px] font-bold">[main*]</span>
+          </div>
+          <div class="flex items-center gap-xs bg-surface-container-low px-sm py-0.5 rounded-full">
+            <span class="material-symbols-outlined text-[13px] text-outline">schedule</span>
+            <span class="font-mono text-[11px] text-on-surface font-medium tracking-tight" id="runtime-clock">00:14:32</span>
+          </div>
+        </div>
+        <div class="flex items-center justify-between gap-xs pt-xs">
+          <div class="flex items-center gap-xs min-w-0">
+            <span class="material-symbols-outlined text-primary text-[15px] animate-spin">sync</span>
+            <p class="font-mono text-xs text-on-surface-variant truncate">
+              <span class="text-primary font-semibold">Agent:</span> Executing bash command: <code class="text-on-surface font-semibold bg-surface-container-low px-xs rounded">npm run build</code>
+            </p>
+          </div>
+          <span class="bg-tertiary-container text-on-tertiary font-mono text-[10px] px-sm py-0.5 rounded-full uppercase tracking-wider shrink-0 font-bold">ACTIVE</span>
+        </div>
+      </div>
+
+      <!-- Execution Control Chips -->
+      <div class="flex items-center gap-xs overflow-x-auto pb-sm scrollbar-none">
+        <button class="flex items-center gap-xs bg-surface-container-lowest active:scale-95 transition-transform px-md py-1.5 rounded-full shadow-tactile shrink-0" id="btn-pause-stream">
+          <span class="material-symbols-outlined text-primary text-[16px]">pause_circle</span>
+          <span class="font-headline-sm text-[12px] text-on-surface">Pause Stream</span>
+        </button>
+        <button class="flex items-center gap-xs bg-surface-container-lowest active:scale-95 transition-transform px-md py-1.5 rounded-full shadow-tactile shrink-0" id="btn-sigint">
+          <span class="material-symbols-outlined text-error text-[16px]">dangerous</span>
+          <span class="font-headline-sm text-[12px] text-error font-medium">Interrupt (SIGINT)</span>
+        </button>
+        <button class="flex items-center gap-xs bg-surface-container-lowest active:scale-95 transition-transform px-md py-1.5 rounded-full shadow-tactile shrink-0" id="btn-approve">
+          <span class="material-symbols-outlined text-tertiary text-[16px]">verified</span>
+          <span class="font-headline-sm text-[12px] text-on-surface">Approve Diff</span>
+        </button>
+        <button class="flex items-center gap-xs bg-surface-container-lowest active:scale-95 transition-transform px-md py-1.5 rounded-full shadow-tactile shrink-0" id="btn-copy-logs">
+          <span class="material-symbols-outlined text-secondary text-[16px]">content_copy</span>
+          <span class="font-headline-sm text-[12px] text-on-surface">Copy Logs</span>
+        </button>
+        <button class="flex items-center gap-xs bg-surface-container-lowest active:scale-95 transition-transform px-md py-1.5 rounded-full shadow-tactile shrink-0" id="btn-clear-terminal">
+          <span class="material-symbols-outlined text-on-surface-variant text-[16px]">delete_sweep</span>
+          <span class="font-headline-sm text-[12px] text-on-surface">Clear</span>
+        </button>
+      </div>
+
+      <!-- Recessed Obsidian Terminal Window -->
+      <div class="relative bg-inverse-surface rounded-2xl p-md shadow-obsidian flex flex-col">
+        <div class="flex items-center justify-between pb-sm mb-xs border-b border-surface-container-highest/20">
+          <div class="flex items-center gap-xs">
+            <span class="w-2.5 h-2.5 rounded-full bg-error inline-block"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-secondary-container inline-block"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-tertiary-fixed inline-block"></span>
+            <span class="ml-xs font-mono text-[11px] text-outline-variant font-medium tracking-wide">bash / relay-subshell-8765</span>
+          </div>
+          <div class="flex items-center gap-xs">
+            <span class="font-mono text-[10px] text-on-tertiary-container bg-tertiary-container/30 px-sm py-0.5 rounded-full">TTY RAW</span>
+          </div>
+        </div>
+
+        <!-- Terminal Streams (Loaded from app.js) -->
+        <div id="terminal-empty-state" class="hidden py-12 text-center text-xs text-outline font-mono">
+          Ready for terminal stream. Launch an agent task or execute commands below.
+        </div>
+        <div id="terminal-content" class="flex flex-col gap-1 font-mono text-[12px] leading-snug overflow-y-auto max-h-[280px] text-inverse-on-surface pr-xs">
+          <div id="terminal-lines" class="space-y-1"></div>
+          <div class="flex flex-col gap-1" id="terminal-scroll-area">
+            <div class="flex items-start gap-xs text-outline-variant">
+              <span class="text-primary-fixed select-none">$</span>
+              <span>agent-relay execute --target=local:8765</span>
             </div>
-          </form>
+            <div class="flex items-start gap-xs text-outline-variant">
+              <span class="text-secondary-container font-bold">[info]</span>
+              <span>Connected to relay daemon on <strong class="text-inverse-on-surface">MY-PC</strong> (port 8765)</span>
+            </div>
+            <div class="flex items-start gap-xs text-primary-container">
+              <span class="text-primary font-bold">[agent]</span>
+              <span>Analyzing git diff in <span class="underline underline-offset-2 text-inverse-on-surface">./src/controllers/relay.ts</span>...</span>
+            </div>
+            <div class="my-xs bg-inverse-surface/80 rounded-lg p-xs flex flex-col gap-0.5 pl-sm border border-slate-700/50">
+              <div class="text-tertiary-fixed-dim flex items-center gap-xs">
+                <span class="select-none font-bold">+</span>
+                <span>// Handshake auto-recovery patch</span>
+              </div>
+              <div class="text-tertiary-fixed flex items-center gap-xs">
+                <span class="select-none font-bold">+</span>
+                <span>const heartbeat = new RelayPing({ interval: 5000 });</span>
+              </div>
+              <div class="text-error-container flex items-center gap-xs">
+                <span class="select-none font-bold">-</span>
+                <span>const heartbeat = null; // deprecated</span>
+              </div>
+            </div>
+            <div class="flex items-start gap-xs text-tertiary-fixed">
+              <span class="text-tertiary-fixed-dim font-bold">[diff]</span>
+              <span>+ Added fallback WebSocket ping/pong heartbeat (interval: 5000ms)</span>
+            </div>
+            <div class="flex items-start gap-xs text-on-tertiary-container">
+              <span class="text-tertiary-fixed font-bold">[test]</span>
+              <span>Running Vitest suite... <span class="bg-tertiary-container/50 text-tertiary-fixed px-xs py-0.5 rounded font-bold">14 passed</span> <span class="text-outline-variant">(1.2s)</span></span>
+            </div>
+            <div class="flex items-center gap-xs text-inverse-on-surface pt-xs" id="active-cursor-line">
+              <span class="text-primary select-none">&gt;</span>
+              <span id="streaming-text">Bundling artifacts via esbuild</span>
+              <span class="inline-block w-2 h-4 bg-tertiary-fixed-dim animate-pulse"></span>
+            </div>
+          </div>
         </div>
       </div>
 
-    </div>
+      <!-- Touch Shell Keys Toolbar -->
+      <div class="flex flex-col gap-xs">
+        <div class="flex items-center justify-between px-xs">
+          <span class="font-mono text-[11px] uppercase text-on-surface-variant font-semibold tracking-wider">Touch Shell Keys</span>
+          <span class="font-mono text-[10px] text-outline">Tap to inject</span>
+        </div>
+        <div class="flex items-center gap-xs overflow-x-auto pb-xs scrollbar-none">
+          <button class="key-pill bg-surface-container-lowest px-sm py-1 rounded-lg shadow-tactile font-mono text-xs font-bold text-on-surface active:scale-90 transition-transform shrink-0" data-key="ESC">ESC</button>
+          <button class="key-pill bg-surface-container-lowest px-sm py-1 rounded-lg shadow-tactile font-mono text-xs font-bold text-on-surface active:scale-90 transition-transform shrink-0" data-key="TAB">TAB</button>
+          <button class="key-pill bg-surface-container-lowest px-sm py-1 rounded-lg shadow-tactile font-mono text-xs font-bold text-error active:scale-90 transition-transform shrink-0" data-key="^C">CTRL+C</button>
+          <button class="key-pill bg-surface-container-lowest px-md py-1 rounded-lg shadow-tactile font-mono text-xs text-on-surface-variant active:scale-95 transition-transform shrink-0" data-command="git status">git status</button>
+          <button class="key-pill bg-surface-container-lowest px-md py-1 rounded-lg shadow-tactile font-mono text-xs text-on-surface-variant active:scale-95 transition-transform shrink-0" data-command="npm test">npm test</button>
+          <button class="key-pill bg-surface-container-lowest px-md py-1 rounded-lg shadow-tactile font-mono text-xs text-on-surface-variant active:scale-95 transition-transform shrink-0" data-command="git diff">git diff</button>
+          <button class="key-pill bg-surface-container-lowest px-md py-1 rounded-lg shadow-tactile font-mono text-xs text-on-surface-variant active:scale-95 transition-transform shrink-0" data-command="clear">clear</button>
+          <button class="key-pill bg-surface-container-lowest px-md py-1 rounded-lg shadow-tactile font-mono text-xs text-on-surface-variant active:scale-95 transition-transform shrink-0" data-command="ls -la">ls -la</button>
+        </div>
+      </div>
 
-    <!-- ============================================================== -->
-    <!-- TAB 2: TERMINAL VIEW (IDLE EMPTY STATE vs ACTIVE STREAM)      -->
-    <!-- ============================================================== -->
-    <div id="view-terminal" class="hidden p-4 space-y-4 max-w-xl w-full mx-auto pb-24">
+      <!-- Auto-Relay Daemon Telemetry Banner -->
+      <div class="bg-surface-container-low rounded-xl p-md flex items-center justify-between border border-outline-variant/30">
+        <div class="flex items-center gap-sm">
+          <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-on-primary">
+            <span class="material-symbols-outlined text-[18px]">terminal</span>
+          </div>
+          <div class="flex flex-col">
+            <span class="font-headline-sm text-xs font-bold text-on-surface">Auto-Relay Daemon</span>
+            <span class="font-mono text-[11px] text-on-surface-variant">Worker Thread #2 (V8 isolate: 41.2MB)</span>
+          </div>
+        </div>
+        <div class="text-right">
+          <span class="font-mono text-xs font-bold text-tertiary">99.9% SYNC</span>
+          <span class="block font-mono text-[10px] text-outline">ping: 18ms</span>
+        </div>
+      </div>
+
+      <!-- Bottom Command Input Capsule Bar -->
+      <div class="flex flex-col gap-xs bg-inverse-surface rounded-2xl p-sm shadow-obsidian">
+        <div class="flex items-center gap-xs overflow-x-auto px-xs pt-xs pb-xs scrollbar-none">
+          <button class="suggest-tag bg-surface-container-highest/20 text-inverse-on-surface px-sm py-0.5 rounded-full font-mono text-[11px] active:scale-95 transition-all shrink-0">--watch</button>
+          <button class="suggest-tag bg-surface-container-highest/20 text-inverse-on-surface px-sm py-0.5 rounded-full font-mono text-[11px] active:scale-95 transition-all shrink-0">--dry-run</button>
+          <button class="suggest-tag bg-surface-container-highest/20 text-inverse-on-surface px-sm py-0.5 rounded-full font-mono text-[11px] active:scale-95 transition-all shrink-0">git commit -am "fix"</button>
+          <button class="suggest-tag bg-surface-container-highest/20 text-inverse-on-surface px-sm py-0.5 rounded-full font-mono text-[11px] active:scale-95 transition-all shrink-0">relay inspect</button>
+        </div>
+        <form class="flex items-center gap-xs px-xs pb-xs" id="command-form">
+          <div class="flex items-center gap-xs flex-1 min-w-0 px-sm py-1 bg-inverse-surface">
+            <span class="font-mono text-xs text-primary-container shrink-0 font-bold">$ relay &gt;</span>
+            <input autocomplete="off" class="w-full bg-transparent text-inverse-on-surface placeholder:text-outline font-mono text-xs focus:outline-none min-w-0" id="command-input" placeholder="Type shell or agent task..." type="text"/>
+          </div>
+          <button aria-label="Dispatch Command" class="w-8 h-8 rounded-full bg-primary-container text-on-primary flex items-center justify-center shrink-0 active:scale-95 transition-transform shadow-md" type="submit">
+            <span class="material-symbols-outlined text-[18px]">arrow_upward</span>
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ---------------------------------------- -->
+    <!-- VIEW 5: TASKS HISTORY                   -->
+    <!-- ---------------------------------------- -->
+    <section id="view-tasks" class="hidden flex flex-col w-full space-y-3">
       <div class="flex items-center justify-between px-1">
-        <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-          <span>🖥️</span> Desktop Terminal Stream
-        </h3>
-        <button id="btn-clear-terminal" class="text-xs text-slate-500 hover:text-slate-800 font-medium">Clear</button>
+        <h3 class="text-sm font-bold text-on-surface">Agent Directives &amp; Tasks</h3>
+        <span class="text-[10px] font-mono text-outline">Active &amp; Recent</span>
       </div>
 
-      <!-- IDLE EMPTY STATE -->
-      <div id="terminal-empty-state" class="bg-white border border-slate-200/90 rounded-3xl p-8 text-center space-y-3 shadow-card">
-        <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-500 mx-auto flex items-center justify-center text-xl">
-          🖥️
+      <div id="tasks-empty-state" class="hidden bg-surface-container-lowest border border-outline-variant/40 rounded-3xl p-8 text-center space-y-2 shadow-card">
+        <span class="material-symbols-outlined text-3xl text-outline">task_alt</span>
+        <h4 class="text-xs font-bold text-on-surface">No Active Tasks</h4>
+        <p class="text-[11px] text-on-surface-variant">Send a directive from Home or Terminal to initiate background execution.</p>
+      </div>
+
+      <div id="tasks-content" class="space-y-3">
+        <!-- Injected via app.js -->
+      </div>
+    </section>
+
+    <!-- ---------------------------------------- -->
+    <!-- VIEW 6: LOGS / AUDIT TRAIL DASHBOARD    -->
+    <!-- ---------------------------------------- -->
+    <section id="view-logs" class="hidden flex flex-col w-full space-y-3 pb-8">
+      <!-- Telemetry Banner / Status Pulse -->
+      <div class="flex items-center justify-between px-md py-sm rounded-xl bg-surface-container-lowest border border-slate-200/80 shadow-sm">
+        <div class="flex items-center gap-xs min-w-0">
+          <span class="flex h-2 w-2 relative">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+          </span>
+          <span class="font-mono text-xs text-slate-800 font-medium truncate">Telemetry Stream Active</span>
         </div>
-        <div class="space-y-1">
-          <h4 class="text-sm font-bold text-slate-800">No active agent terminal process running</h4>
-          <p class="text-xs text-slate-500 max-w-xs mx-auto">
-            When you send a prompt or trigger a test in a chat, live subprocess stdout/stderr commands will stream here.
-          </p>
+        <span class="font-mono text-[10px] px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-200/60 text-indigo-700 tracking-wider uppercase font-semibold">Audit Sync 99.98%</span>
+      </div>
+
+      <!-- Summary Metric Grid -->
+      <div class="grid grid-cols-3 gap-xs">
+        <!-- Stat 1 -->
+        <div class="flex flex-col p-3 rounded-2xl bg-white border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between mb-xs">
+            <span class="material-symbols-outlined text-indigo-600 text-[18px]">security</span>
+            <span class="font-mono text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/70">+12%</span>
+          </div>
+          <span class="text-lg text-slate-900 font-bold">142</span>
+          <span class="text-[11px] text-slate-500 truncate">Intercepts (30d)</span>
+        </div>
+        <!-- Stat 2 -->
+        <div class="flex flex-col p-3 rounded-2xl bg-white border border-slate-200 shadow-sm relative overflow-hidden">
+          <div class="absolute -right-4 -bottom-4 w-12 h-12 rounded-full bg-rose-500/10 pointer-events-none"></div>
+          <div class="flex items-center justify-between mb-xs">
+            <span class="material-symbols-outlined text-rose-600 text-[18px]">gpp_bad</span>
+            <span class="font-mono text-[10px] font-semibold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200/70">100%</span>
+          </div>
+          <span class="text-lg text-rose-600 font-bold">18</span>
+          <span class="text-[11px] text-slate-500 truncate">Critical Blocked</span>
+        </div>
+        <!-- Stat 3 -->
+        <div class="flex flex-col p-3 rounded-2xl bg-white border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between mb-xs">
+            <span class="material-symbols-outlined text-amber-600 text-[18px]">key</span>
+            <span class="font-mono text-[10px] font-semibold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/70">RSA/ENV</span>
+          </div>
+          <span class="text-lg text-slate-900 font-bold">94</span>
+          <span class="text-[11px] text-slate-500 truncate">Secrets Redacted</span>
         </div>
       </div>
 
-      <!-- ACTIVE TERMINAL STREAM -->
-      <div id="terminal-content" class="hidden bg-slate-950 text-slate-100 rounded-3xl p-4 font-mono text-xs border border-slate-800 shadow-xl space-y-1.5 overflow-x-auto min-h-[300px] max-h-[500px]">
-        <div class="text-[10px] text-slate-500 pb-2 border-b border-slate-800 flex items-center justify-between">
-          <span>agentrelay://my-pc/terminal</span>
-          <span class="text-emerald-400 font-semibold flex items-center gap-1">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> LIVE
+      <!-- Filter & Command Bar -->
+      <div class="flex flex-col gap-xs pt-xs">
+        <!-- Search Bar with Tactical Focus Indicator -->
+        <div class="relative flex items-center w-full">
+          <span class="material-symbols-outlined absolute left-3 text-slate-400 text-[20px] pointer-events-none">search</span>
+          <input class="w-full h-11 pl-10 pr-9 rounded-xl bg-white border border-slate-200 text-slate-800 placeholder-slate-400 text-xs focus:outline-none focus:border-indigo-500/60 transition-all shadow-sm font-sans" id="auditSearch" placeholder="Search logs, file paths, regex, rules..." type="text"/>
+          <button class="absolute right-2.5 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-700 hidden" id="clearSearchBtn">
+            <span class="material-symbols-outlined text-[16px]">close</span>
+          </button>
+        </div>
+        <!-- Secondary Controls: Agent Dropdown & Quick View -->
+        <div class="flex items-center justify-between gap-xs">
+          <!-- Agent selector dropdown simulation -->
+          <div class="relative flex-1">
+            <select class="w-full h-9 pl-2.5 pr-7 rounded-lg bg-white border border-slate-200 text-slate-700 font-mono text-[11px] appearance-none focus:outline-none focus:border-indigo-500/60 shadow-sm hover:bg-slate-50 transition-colors" id="agentFilter">
+              <option value="all">Agent: All Orchestrators</option>
+              <option value="claude">Claude Code (Local v1.4)</option>
+              <option value="codex">OpenAI Codex (Daemon)</option>
+              <option value="antigravity">Antigravity (Self-Host)</option>
+            </select>
+            <span class="material-symbols-outlined absolute right-2 top-2 text-slate-400 text-[18px] pointer-events-none">expand_more</span>
+          </div>
+          <!-- Quick Export Trigger -->
+          <button class="h-9 px-3 flex items-center gap-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 font-mono text-[11px] font-semibold shadow-sm hover:bg-slate-50 active:scale-95 transition-all shrink-0" id="exportComplianceBtn">
+            <span class="material-symbols-outlined text-indigo-600 text-[16px]">file_download</span>
+            <span>JSON Export</span>
+          </button>
+        </div>
+        <!-- Severity Filter Carousel (Pills) -->
+        <div class="flex items-center gap-xs overflow-x-auto py-1 scrollbar-none text-nowrap">
+          <button class="filter-pill flex items-center gap-1.5 h-8 px-3 rounded-full bg-indigo-600 text-white font-medium shadow-sm shadow-indigo-200 text-xs transition-colors shrink-0" data-filter="all">
+            <span>All</span>
+            <span class="px-1.5 py-0.2 rounded-full bg-white/20 text-[10px] font-mono font-semibold">142</span>
+          </button>
+          <button class="filter-pill flex items-center gap-1.5 h-8 px-3 rounded-full bg-rose-50 text-rose-700 border border-rose-200 font-medium text-xs transition-colors shrink-0" data-filter="critical">
+            <span class="h-1.5 w-1.5 rounded-full bg-rose-600"></span>
+            <span>Critical</span>
+            <span class="px-1.5 py-0.2 rounded-full bg-rose-100 text-rose-800 text-[10px] font-mono font-semibold">18</span>
+          </button>
+          <button class="filter-pill flex items-center gap-1.5 h-8 px-3 rounded-full bg-amber-50 text-amber-800 border border-amber-200 font-medium text-xs transition-colors shrink-0" data-filter="warning">
+            <span class="h-1.5 w-1.5 rounded-full bg-amber-600"></span>
+            <span>Warning</span>
+            <span class="px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 text-[10px] font-mono font-semibold">30</span>
+          </button>
+          <button class="filter-pill flex items-center gap-1.5 h-8 px-3 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium text-xs transition-colors shrink-0" data-filter="allowed">
+            <span class="h-1.5 w-1.5 rounded-full bg-emerald-600"></span>
+            <span>Allowed</span>
+            <span class="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-mono font-semibold">94</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Audit Stream Header / Live Count -->
+      <div class="flex items-center justify-between pt-xs">
+        <div class="flex items-center gap-1.5">
+          <span class="text-sm font-bold text-slate-900">Audit Trail</span>
+          <span class="font-mono text-[11px] px-2 py-0.5 rounded-full bg-surface-container border border-slate-200 text-slate-700 font-semibold" id="visibleCountBadge">4 events</span>
+        </div>
+        <div class="flex items-center gap-1">
+          <button class="w-8 h-8 rounded-lg bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-600 hover:text-indigo-600 active:scale-95 transition-all" id="refreshLogsBtn" title="Refresh Audit Logs">
+            <span class="material-symbols-outlined text-[18px]">cached</span>
+          </button>
+          <button class="w-8 h-8 rounded-lg bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-600 hover:text-indigo-600 active:scale-95 transition-all" id="toggleDensityBtn" title="Expand/Collapse All">
+            <span class="material-symbols-outlined text-[18px]">unfold_more</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile Audit Stream (Cards) -->
+      <div class="flex flex-col gap-sm" id="auditLogStream">
+        <!-- Injected dynamically and fallback cards -->
+      </div>
+
+      <!-- Empty State for Search/Filters -->
+      <div class="hidden flex flex-col items-center justify-center py-10 px-4 rounded-2xl bg-white border border-slate-200 text-center gap-xs shadow-sm" id="noLogsState">
+        <span class="material-symbols-outlined text-[36px] text-slate-400">manage_search</span>
+        <span class="text-xs font-bold text-slate-900">No Intercepts Found</span>
+        <span class="text-[11px] text-slate-500 max-w-xs">No audit records match your active query or selected guardrail filter.</span>
+        <button class="mt-2 px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 font-mono text-[11px] font-semibold shadow-xs" id="resetFiltersBtn">
+          Reset All Filters
+        </button>
+      </div>
+
+      <!-- Pagination & Compliance Integrity Footer -->
+      <div class="flex flex-col gap-xs pt-sm">
+        <div class="flex items-center justify-between text-slate-500 font-mono text-[11px]">
+          <span>Displaying 1–4 of 142 records</span>
+          <span class="text-emerald-700 font-medium flex items-center gap-1">
+            <span class="material-symbols-outlined text-[14px] text-emerald-600">verified</span> Cryptographic Chain Intact
           </span>
         </div>
-        <div id="terminal-lines" class="space-y-1 pt-1"></div>
-      </div>
-    </div>
-
-    <!-- ============================================================== -->
-    <!-- TAB 3: TASKS VIEW (IDLE EMPTY STATE vs ACTIVE TASKS)          -->
-    <!-- ============================================================== -->
-    <div id="view-tasks" class="hidden p-4 space-y-4 max-w-xl w-full mx-auto pb-24">
-      <div class="px-1">
-        <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-          <span>📋</span> Agent Task Queue
-        </h3>
-      </div>
-
-      <!-- IDLE EMPTY STATE -->
-      <div id="tasks-empty-state" class="bg-white border border-slate-200/90 rounded-3xl p-8 text-center space-y-3 shadow-card">
-        <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-500 mx-auto flex items-center justify-center text-xl">
-          📋
-        </div>
-        <div class="space-y-1">
-          <h4 class="text-sm font-bold text-slate-800">No background tasks running</h4>
-          <p class="text-xs text-slate-500 max-w-xs mx-auto">
-            All agent execution queues are idle. Any multi-step refactor or unit test directive will appear here.
-          </p>
+        <div class="flex items-center justify-between gap-sm pt-1">
+          <button class="flex-1 h-10 rounded-lg bg-white border border-slate-200 text-slate-400 font-mono text-[12px] font-semibold flex items-center justify-center gap-1 opacity-60 cursor-not-allowed shadow-xs">
+            <span class="material-symbols-outlined text-[16px]">chevron_left</span> Previous
+          </button>
+          <div class="flex items-center gap-1 px-3">
+            <span class="font-mono text-xs text-indigo-600 font-bold">1</span>
+            <span class="font-mono text-xs text-slate-400">/</span>
+            <span class="font-mono text-xs text-slate-500">36</span>
+          </div>
+          <button class="flex-1 h-10 rounded-lg bg-white border border-slate-200 text-slate-700 font-mono text-[12px] font-semibold flex items-center justify-center gap-1 active:bg-slate-50 shadow-xs">
+            Next <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+          </button>
         </div>
       </div>
+    </section>
 
-      <!-- ACTIVE TASKS LIST -->
-      <div id="tasks-content" class="hidden space-y-3"></div>
-    </div>
+    <!-- ---------------------------------------- -->
+    <!-- VIEW 6: GUARDRAIL POLICIES               -->
+    <!-- ---------------------------------------- -->
+    <section id="view-guardrails" class="hidden flex-col w-full pb-6 space-y-3">
+      <!-- Status & Profile Overview Header Card -->
+      <div class="bg-surface-container-lowest rounded-2xl p-4 shadow-[0_4px_20px_-2px_rgba(99,102,241,0.08),0_2px_6px_-1px_rgba(0,0,0,0.04)] border border-surface-container-high/80 flex flex-col gap-2 relative overflow-hidden">
+        <div class="absolute -top-12 -right-12 w-32 h-32 bg-primary/10 rounded-full blur-2xl pointer-events-none"></div>
+        <div class="flex items-start justify-between">
+          <div class="flex flex-col gap-0.5">
+            <div class="flex items-center gap-1.5">
+              <div class="w-6 h-6 rounded-md bg-primary-fixed flex items-center justify-center text-primary">
+                <span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">security</span>
+              </div>
+              <span class="font-headline-sm text-sm text-on-surface font-bold">Security Guardrails</span>
+            </div>
+            <div class="flex items-center gap-1.5 mt-1">
+              <span class="font-mono text-[10px] text-on-surface-variant">Active Profile:</span>
+              <span id="guardrail-profile-badge" class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-mono text-[10px] font-bold border border-emerald-200">STRICT PRODUCTION</span>
+            </div>
+          </div>
+          <div class="flex flex-col items-end">
+            <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-low border border-surface-container-high">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+              <span id="guardrail-enforce-state" class="font-mono text-[10px] text-emerald-700 font-bold tracking-wider uppercase">ENFORCING</span>
+            </div>
+            <span class="font-mono text-[10px] text-slate-400 mt-1 font-medium">v2.4.1-local</span>
+          </div>
+        </div>
 
-    <!-- ============================================================== -->
-    <!-- TAB 4: LOGS VIEW (IDLE EMPTY STATE vs SECURITY AUDIT LOGS)    -->
-    <!-- ============================================================== -->
-    <div id="view-logs" class="hidden p-4 space-y-4 max-w-xl w-full mx-auto pb-24">
-      <div class="px-1">
-        <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-          <span>📊</span> Security &amp; Activity Audit Log
-        </h3>
+        <!-- Quick Telemetry Strip -->
+        <div class="grid grid-cols-3 gap-1.5 pt-1">
+          <div class="bg-surface-container-low/70 border border-surface-container-high/60 p-2 rounded-xl flex flex-col">
+            <span class="font-mono text-[10px] text-on-surface-variant uppercase tracking-wider font-semibold">Blocks (24h)</span>
+            <span id="guardrail-stat-blocks" class="font-headline-md text-sm text-primary mt-0.5 font-bold">42</span>
+          </div>
+          <div class="bg-surface-container-low/70 border border-surface-container-high/60 p-2 rounded-xl flex flex-col">
+            <span class="font-mono text-[10px] text-on-surface-variant uppercase tracking-wider font-semibold">Latency</span>
+            <span id="guardrail-stat-latency" class="font-headline-md text-sm text-emerald-700 mt-0.5 font-bold">1.2ms</span>
+          </div>
+          <div class="bg-surface-container-low/70 border border-surface-container-high/60 p-2 rounded-xl flex flex-col">
+            <span class="font-mono text-[10px] text-on-surface-variant uppercase tracking-wider font-semibold">Intercepts</span>
+            <span id="guardrail-stat-intercepts" class="font-headline-md text-sm text-secondary mt-0.5 font-bold">0 Pending</span>
+          </div>
+        </div>
       </div>
 
-      <!-- IDLE EMPTY STATE -->
-      <div id="logs-empty-state" class="bg-white border border-slate-200/90 rounded-3xl p-8 text-center space-y-3 shadow-card">
-        <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-500 mx-auto flex items-center justify-center text-xl">
-          📊
-        </div>
-        <div class="space-y-1">
-          <h4 class="text-sm font-bold text-slate-800">No audit logs for current session</h4>
-          <p class="text-xs text-slate-500 max-w-xs mx-auto">
-            Path traversals, file modifications, secret redacting, and tool permissions will be logged here.
-          </p>
-        </div>
+      <!-- Horizontal Tab Navigation -->
+      <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1" id="tab-group" role="tablist">
+        <button aria-selected="true" class="tab-pill flex items-center gap-1.5 px-3 py-2 rounded-full bg-primary-container text-on-primary font-bold text-[12px] shrink-0 shadow-[0_2px_8px_rgba(79,70,229,0.3)] transition-all duration-150 active:scale-95" id="tab-btn-pathguard" onclick="switchGuardrailTab('pathguard')" role="tab">
+          <span class="material-symbols-outlined text-[15px]">arrow_forward_ios</span>
+          <span>PathGuard</span>
+          <span class="ml-0.5 px-1.5 py-0.2 rounded-full bg-on-primary/25 text-[10px] font-mono font-bold">4</span>
+        </button>
+        <button aria-selected="false" class="tab-pill flex items-center gap-1.5 px-3 py-2 rounded-full bg-surface-container-lowest text-on-surface-variant font-medium text-[12px] border border-surface-container-high/80 shrink-0 shadow-sm transition-all duration-150 active:scale-95" id="tab-btn-commandguard" onclick="switchGuardrailTab('commandguard')" role="tab">
+          <span class="material-symbols-outlined text-[15px]">terminal</span>
+          <span>CommandGuard</span>
+          <span class="ml-0.5 px-1.5 py-0.2 rounded-full bg-surface-container-high text-on-surface text-[10px] font-mono font-bold">4</span>
+        </button>
+        <button aria-selected="false" class="tab-pill flex items-center gap-1.5 px-3 py-2 rounded-full bg-surface-container-lowest text-on-surface-variant font-medium text-[12px] border border-surface-container-high/80 shrink-0 shadow-sm transition-all duration-150 active:scale-95" id="tab-btn-secretredactor" onclick="switchGuardrailTab('secretredactor')" role="tab">
+          <span class="material-symbols-outlined text-[15px]">visibility_off</span>
+          <span>SecretRedactor</span>
+          <span class="ml-0.5 px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-mono font-bold">Active</span>
+        </button>
+        <button aria-selected="false" class="tab-pill flex items-center gap-1.5 px-3 py-2 rounded-full bg-surface-container-lowest text-on-surface-variant font-medium text-[12px] border border-surface-container-high/80 shrink-0 shadow-sm transition-all duration-150 active:scale-95" id="tab-btn-sandbox" onclick="switchGuardrailTab('sandbox')" role="tab">
+          <span class="material-symbols-outlined text-[15px]">deployed_code</span>
+          <span>Sandbox</span>
+        </button>
       </div>
 
-      <!-- ACTIVE AUDIT LOGS LIST -->
-      <div id="logs-content" class="hidden space-y-2"></div>
-    </div>
+      <!-- TAB PANELS CONTAINER -->
+      <div class="flex flex-col gap-3 mt-1">
+        <!-- ==================== TAB 1: PATHGUARD (ACTIVE DEFAULT) ==================== -->
+        <div class="flex flex-col gap-3" id="tab-panel-pathguard">
+          <!-- Section Brief -->
+          <div class="bg-surface-container-lowest rounded-2xl p-3.5 flex flex-col gap-1 shadow-[0_2px_10px_rgba(15,23,42,0.03)] border border-surface-container-high/80">
+            <div class="flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-primary text-[18px]">verified_user</span>
+              <span class="font-headline-sm text-xs text-on-surface font-bold">Filesystem Perimeter Rules</span>
+            </div>
+            <p class="font-body-sm text-[12px] text-on-surface-variant">
+              Intercepts filesystem read/write operations outside approved workspace boundaries before shell I/O occurs.
+            </p>
+          </div>
 
+          <!-- Pre-set Protection Toggles -->
+          <div class="flex flex-col gap-2">
+            <div class="flex items-center justify-between px-1">
+              <span class="text-[10px] font-mono text-on-surface-variant uppercase tracking-wider font-semibold">Critical Intercept Vectors</span>
+              <span class="font-mono text-[10px] text-emerald-700 font-bold">Zero-Tolerance Active</span>
+            </div>
+
+            <!-- Rule 1: .env -->
+            <div class="bg-surface-container-lowest p-3 rounded-2xl flex items-center justify-between shadow-sm border border-surface-container-high/80">
+              <div class="flex items-start gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-error-container/60 text-error flex items-center justify-center shrink-0 mt-0.5">
+                  <span class="material-symbols-outlined text-[18px]">lock</span>
+                </div>
+                <div class="flex flex-col min-w-0">
+                  <div class="flex items-center gap-1.5">
+                    <span class="font-mono text-xs text-on-surface font-bold truncate">.env &amp; .env.local</span>
+                    <span class="px-1.5 py-0.2 rounded-full bg-error-container text-error font-mono text-[9px] uppercase font-bold">Critical</span>
+                  </div>
+                  <span class="text-[11px] text-on-surface-variant truncate">Strictly blocks all agent read/write/pipe syscalls</span>
+                </div>
+              </div>
+              <button id="toggle-path-env" aria-checked="true" class="guardrail-toggle relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full bg-primary-container p-0.5 transition-colors duration-200 ease-in-out focus:outline-none shadow-sm" onclick="toggleSwitch(this)" role="switch" type="button">
+                <span class="pointer-events-none inline-block h-5 w-5 translate-x-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out"></span>
+              </button>
+            </div>
+
+            <!-- Rule 2: SSH -->
+            <div class="bg-surface-container-lowest p-3 rounded-2xl flex items-center justify-between shadow-sm border border-surface-container-high/80">
+              <div class="flex items-start gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-error-container/60 text-error flex items-center justify-center shrink-0 mt-0.5">
+                  <span class="material-symbols-outlined text-[18px]">key</span>
+                </div>
+                <div class="flex flex-col min-w-0">
+                  <div class="flex items-center gap-1.5">
+                    <span class="font-mono text-xs text-on-surface font-bold truncate">id_rsa &amp; SSH keys</span>
+                    <span class="px-1.5 py-0.2 rounded-full bg-error-container text-error font-mono text-[9px] uppercase font-bold">Critical</span>
+                  </div>
+                  <span class="text-[11px] text-on-surface-variant truncate">Prevents SSH private keys &amp; known_hosts access</span>
+                </div>
+              </div>
+              <button id="toggle-path-ssh" aria-checked="true" class="guardrail-toggle relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full bg-primary-container p-0.5 transition-colors duration-200 ease-in-out focus:outline-none shadow-sm" onclick="toggleSwitch(this)" role="switch" type="button">
+                <span class="pointer-events-none inline-block h-5 w-5 translate-x-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out"></span>
+              </button>
+            </div>
+
+            <!-- Rule 3: Certs -->
+            <div class="bg-surface-container-lowest p-3 rounded-2xl flex items-center justify-between shadow-sm border border-surface-container-high/80">
+              <div class="flex items-start gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-error-container/60 text-error flex items-center justify-center shrink-0 mt-0.5">
+                  <span class="material-symbols-outlined text-[18px]">workspace_premium</span>
+                </div>
+                <div class="flex flex-col min-w-0">
+                  <div class="flex items-center gap-1.5">
+                    <span class="font-mono text-xs text-on-surface font-bold truncate">*.pem / *.crt certificates</span>
+                    <span class="px-1.5 py-0.2 rounded-full bg-error-container text-error font-mono text-[9px] uppercase font-bold">Critical</span>
+                  </div>
+                  <span class="text-[11px] text-on-surface-variant truncate">Denies inspection of root CA and TLS cert bundles</span>
+                </div>
+              </div>
+              <button id="toggle-path-certs" aria-checked="true" class="guardrail-toggle relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full bg-primary-container p-0.5 transition-colors duration-200 ease-in-out focus:outline-none shadow-sm" onclick="toggleSwitch(this)" role="switch" type="button">
+                <span class="pointer-events-none inline-block h-5 w-5 translate-x-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out"></span>
+              </button>
+            </div>
+
+            <!-- Rule 4: Service Account -->
+            <div class="bg-surface-container-lowest p-3 rounded-2xl flex items-center justify-between shadow-sm border border-surface-container-high/80">
+              <div class="flex items-start gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-error-container/60 text-error flex items-center justify-center shrink-0 mt-0.5">
+                  <span class="material-symbols-outlined text-[18px]">cloud_sync</span>
+                </div>
+                <div class="flex flex-col min-w-0">
+                  <div class="flex items-center gap-1.5">
+                    <span class="font-mono text-xs text-on-surface font-bold truncate">service_account.json</span>
+                    <span class="px-1.5 py-0.2 rounded-full bg-error-container text-error font-mono text-[9px] uppercase font-bold">Critical</span>
+                  </div>
+                  <span class="text-[11px] text-on-surface-variant truncate">Guards GCP and Cloud IAM credential files</span>
+                </div>
+              </div>
+              <button id="toggle-path-sa" aria-checked="true" class="guardrail-toggle relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full bg-primary-container p-0.5 transition-colors duration-200 ease-in-out focus:outline-none shadow-sm" onclick="toggleSwitch(this)" role="switch" type="button">
+                <span class="pointer-events-none inline-block h-5 w-5 translate-x-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out"></span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Custom Glob Pattern Builder -->
+          <div class="bg-surface-container-lowest rounded-2xl p-3.5 flex flex-col gap-2 shadow-[0_2px_10px_rgba(15,23,42,0.03)] border border-surface-container-high/80">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-primary text-[18px]">pattern</span>
+                <span class="font-headline-sm text-xs text-on-surface font-bold">Custom Glob Pattern Builder</span>
+              </div>
+              <span class="font-mono text-[10px] text-primary font-semibold">Regex &amp; Wildcards</span>
+            </div>
+            <p class="text-[12px] text-on-surface-variant">
+              Specify directory masks or file globs to immediately quarantine against agent execution traces.
+            </p>
+            <div class="flex flex-col gap-1.5 pt-1">
+              <div class="flex items-center bg-surface-container-low border border-surface-container-high rounded-xl px-3 py-2 focus-within:border-primary transition-colors">
+                <span class="font-mono text-xs text-primary font-bold pr-2 shrink-0">glob://</span>
+                <input class="w-full bg-transparent font-mono text-xs text-on-surface outline-none placeholder:text-outline font-medium" id="glob-pattern-input" placeholder="e.g. **/credentials/*.yaml" type="text" value="**/config/secrets.*"/>
+              </div>
+              <div class="flex items-center justify-between gap-2 pt-1">
+                <div class="flex items-center gap-1.5">
+                  <span class="font-mono text-[10px] text-on-surface-variant font-medium">Action:</span>
+                  <span class="px-2 py-0.5 rounded-full bg-error-container text-error font-mono text-[10px] font-bold">BLOCK &amp; NOTIFY</span>
+                </div>
+                <button class="flex items-center gap-1 px-3.5 py-1.5 rounded-full bg-primary-container text-on-primary font-bold text-[12px] shadow-sm active:scale-95 transition-transform" onclick="addGlobRule()" type="button">
+                  <span class="material-symbols-outlined text-[15px]">add</span>
+                  <span>Add Rule</span>
+                </button>
+              </div>
+            </div>
+            <!-- Dynamic Rule Stack Container -->
+            <div class="flex flex-wrap gap-1.5 pt-1.5" id="active-globs-container">
+              <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-low border border-surface-container-high text-on-surface font-mono text-[11px] shadow-xs">
+                <span class="text-primary font-bold">#1</span>
+                <span class="glob-val font-medium">**/config/secrets.*</span>
+                <button class="text-outline hover:text-error ml-1 flex items-center transition-colors" onclick="this.parentElement.remove()">
+                  <span class="material-symbols-outlined text-[14px]">close</span>
+                </button>
+              </div>
+              <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-low border border-surface-container-high text-on-surface font-mono text-[11px] shadow-xs">
+                <span class="text-primary font-bold">#2</span>
+                <span class="glob-val font-medium">~/.aws/credentials</span>
+                <button class="text-outline hover:text-error ml-1 flex items-center transition-colors" onclick="this.parentElement.remove()">
+                  <span class="material-symbols-outlined text-[14px]">close</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== TAB 2: COMMANDGUARD ==================== -->
+        <div class="hidden flex-col gap-3" id="tab-panel-commandguard">
+          <div class="bg-surface-container-lowest rounded-2xl p-3.5 flex flex-col gap-1 shadow-[0_2px_10px_rgba(15,23,42,0.03)] border border-surface-container-high/80">
+            <div class="flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-primary text-[18px]">terminal</span>
+              <span class="font-headline-sm text-xs text-on-surface font-bold">Command Execution Blacklist</span>
+            </div>
+            <p class="text-[12px] text-on-surface-variant">
+              Prevents the local runtime from evaluating unvetted bash strings and hazardous system calls.
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-2">
+            <!-- Command 1: rm -rf -->
+            <div class="bg-surface-container-lowest p-3 rounded-2xl flex items-center justify-between shadow-sm border border-surface-container-high/80">
+              <div class="flex items-start gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-error-container/60 text-error flex items-center justify-center shrink-0 mt-0.5">
+                  <span class="material-symbols-outlined text-[18px]">dangerous</span>
+                </div>
+                <div class="flex flex-col min-w-0">
+                  <span class="font-mono text-xs text-on-surface font-bold truncate">rm -rf / &amp; system dirs</span>
+                  <span class="text-[11px] text-on-surface-variant truncate">Blocks recursive root deletion and unbound unlinks</span>
+                </div>
+              </div>
+              <button id="toggle-cmd-rm" aria-checked="true" class="guardrail-toggle relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full bg-primary-container p-0.5 transition-colors duration-200 ease-in-out focus:outline-none shadow-sm" onclick="toggleSwitch(this)" role="switch" type="button">
+                <span class="pointer-events-none inline-block h-5 w-5 translate-x-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out"></span>
+              </button>
+            </div>
+
+            <!-- Command 2: git push --force -->
+            <div class="bg-surface-container-lowest p-3 rounded-2xl flex items-center justify-between shadow-sm border border-surface-container-high/80">
+              <div class="flex items-start gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-secondary-container/60 text-secondary flex items-center justify-center shrink-0 mt-0.5">
+                  <span class="material-symbols-outlined text-[18px]">merge</span>
+                </div>
+                <div class="flex flex-col min-w-0">
+                  <span class="font-mono text-xs text-on-surface font-bold truncate">git push --force</span>
+                  <span class="text-[11px] text-on-surface-variant truncate">Interception for upstream destructive Git operations</span>
+                </div>
+              </div>
+              <button id="toggle-cmd-forcepush" aria-checked="true" class="guardrail-toggle relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full bg-primary-container p-0.5 transition-colors duration-200 ease-in-out focus:outline-none shadow-sm" onclick="toggleSwitch(this)" role="switch" type="button">
+                <span class="pointer-events-none inline-block h-5 w-5 translate-x-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out"></span>
+              </button>
+            </div>
+
+            <!-- Command 3: sudo su -->
+            <div class="bg-surface-container-lowest p-3 rounded-2xl flex items-center justify-between shadow-sm border border-surface-container-high/80">
+              <div class="flex items-start gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-error-container/60 text-error flex items-center justify-center shrink-0 mt-0.5">
+                  <span class="material-symbols-outlined text-[18px]">admin_panel_settings</span>
+                </div>
+                <div class="flex flex-col min-w-0">
+                  <span class="font-mono text-xs text-on-surface font-bold truncate">sudo su &amp; privilege elevation</span>
+                  <span class="text-[11px] text-on-surface-variant truncate">Rejects UID switching and setuid escalation</span>
+                </div>
+              </div>
+              <button id="toggle-cmd-sudosu" aria-checked="true" class="guardrail-toggle relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full bg-primary-container p-0.5 transition-colors duration-200 ease-in-out focus:outline-none shadow-sm" onclick="toggleSwitch(this)" role="switch" type="button">
+                <span class="pointer-events-none inline-block h-5 w-5 translate-x-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out"></span>
+              </button>
+            </div>
+
+            <!-- Command 4: curl | bash -->
+            <div class="bg-surface-container-lowest p-3 rounded-2xl flex items-center justify-between shadow-sm border border-surface-container-high/80">
+              <div class="flex items-start gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-secondary-container/60 text-secondary flex items-center justify-center shrink-0 mt-0.5">
+                  <span class="material-symbols-outlined text-[18px]">downloading</span>
+                </div>
+                <div class="flex flex-col min-w-0">
+                  <span class="font-mono text-xs text-on-surface font-bold truncate">curl | bash pipelines</span>
+                  <span class="text-[11px] text-on-surface-variant truncate">Halts pipe-to-interpreter remote scripts</span>
+                </div>
+              </div>
+              <button id="toggle-cmd-curlbash" aria-checked="true" class="guardrail-toggle relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full bg-primary-container p-0.5 transition-colors duration-200 ease-in-out focus:outline-none shadow-sm" onclick="toggleSwitch(this)" role="switch" type="button">
+                <span class="pointer-events-none inline-block h-5 w-5 translate-x-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== TAB 3: SECRETREDACTOR ==================== -->
+        <div class="hidden flex-col gap-3" id="tab-panel-secretredactor">
+          <div class="bg-surface-container-lowest rounded-2xl p-3.5 flex flex-col gap-1 shadow-[0_2px_10px_rgba(15,23,42,0.03)] border border-surface-container-high/80">
+            <div class="flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-primary text-[18px]">visibility_off</span>
+              <span class="font-headline-sm text-xs text-on-surface font-bold">In-Flight Entropy &amp; Token Redactor</span>
+            </div>
+            <p class="text-[12px] text-on-surface-variant">
+              Real-time regex stripping applied to agent stdout/stderr logs and LLM completion prompts.
+            </p>
+          </div>
+
+          <!-- Masking Style Radio Selection -->
+          <div class="bg-surface-container-lowest rounded-2xl p-3.5 flex flex-col gap-2 shadow-sm border border-surface-container-high/80">
+            <span class="text-[10px] font-mono text-on-surface-variant uppercase tracking-wider font-semibold">Masking Output Format</span>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="cursor-pointer flex flex-col p-2.5 rounded-xl bg-surface-container-low border border-surface-container-high/80 transition-colors text-on-surface has-[:checked]:bg-primary-container/10 has-[:checked]:border-primary/40 has-[:checked]:text-primary shadow-xs">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-semibold">Explicit Tag</span>
+                  <input checked="" class="accent-primary-container h-4 w-4" name="masking_format" type="radio" value="tag"/>
+                </div>
+                <span class="font-mono text-[10px] text-on-surface-variant mt-1 font-medium">[REDACTED_SECRET]</span>
+              </label>
+              <label class="cursor-pointer flex flex-col p-2.5 rounded-xl bg-surface-container-low border border-surface-container-high/80 transition-colors text-on-surface has-[:checked]:bg-primary-container/10 has-[:checked]:border-primary/40 has-[:checked]:text-primary shadow-xs">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-semibold">Asterisk Mask</span>
+                  <input class="accent-primary-container h-4 w-4" name="masking_format" type="radio" value="asterisk"/>
+                </div>
+                <span class="font-mono text-[10px] text-on-surface-variant mt-1 font-medium">sk-ant-••••••••••••</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Provider Token Redaction Checkers -->
+          <div class="flex flex-col gap-2">
+            <span class="text-[10px] font-mono text-on-surface-variant uppercase tracking-wider px-1 font-semibold">Managed Providers</span>
+
+            <!-- Provider 1: Anthropic -->
+            <div class="bg-surface-container-lowest p-3 rounded-2xl flex items-center justify-between shadow-sm border border-surface-container-high/80">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-surface-container-low border border-surface-container-high flex items-center justify-center">
+                  <span class="font-mono text-[11px] font-bold text-primary">AI</span>
+                </div>
+                <div class="flex flex-col">
+                  <span class="font-mono text-xs text-on-surface font-bold">Anthropic API Keys</span>
+                  <span class="font-mono text-[10px] text-on-surface-variant font-medium">sk-ant-api03-*</span>
+                </div>
+              </div>
+              <button id="toggle-sr-anthropic" aria-checked="true" class="guardrail-toggle relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full bg-primary-container p-0.5 transition-colors duration-200 ease-in-out focus:outline-none shadow-sm" onclick="toggleSwitch(this)" role="switch" type="button">
+                <span class="pointer-events-none inline-block h-5 w-5 translate-x-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out"></span>
+              </button>
+            </div>
+
+            <!-- Provider 2: OpenAI -->
+            <div class="bg-surface-container-lowest p-3 rounded-2xl flex items-center justify-between shadow-sm border border-surface-container-high/80">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-surface-container-low border border-surface-container-high flex items-center justify-center">
+                  <span class="font-mono text-[11px] font-bold text-secondary">OA</span>
+                </div>
+                <div class="flex flex-col">
+                  <span class="font-mono text-xs text-on-surface font-bold">OpenAI Bearer Keys</span>
+                  <span class="font-mono text-[10px] text-on-surface-variant font-medium">sk-proj-* / sk-org-*</span>
+                </div>
+              </div>
+              <button id="toggle-sr-openai" aria-checked="true" class="guardrail-toggle relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full bg-primary-container p-0.5 transition-colors duration-200 ease-in-out focus:outline-none shadow-sm" onclick="toggleSwitch(this)" role="switch" type="button">
+                <span class="pointer-events-none inline-block h-5 w-5 translate-x-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out"></span>
+              </button>
+            </div>
+
+            <!-- Provider 3: AWS -->
+            <div class="bg-surface-container-lowest p-3 rounded-2xl flex items-center justify-between shadow-sm border border-surface-container-high/80">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-surface-container-low border border-surface-container-high flex items-center justify-center">
+                  <span class="font-mono text-[11px] font-bold text-emerald-700">AWS</span>
+                </div>
+                <div class="flex flex-col">
+                  <span class="font-mono text-xs text-on-surface font-bold">AWS Access Keys</span>
+                  <span class="font-mono text-[10px] text-on-surface-variant font-medium">AKIA[0-9A-Z]{16}</span>
+                </div>
+              </div>
+              <button id="toggle-sr-aws" aria-checked="true" class="guardrail-toggle relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full bg-primary-container p-0.5 transition-colors duration-200 ease-in-out focus:outline-none shadow-sm" onclick="toggleSwitch(this)" role="switch" type="button">
+                <span class="pointer-events-none inline-block h-5 w-5 translate-x-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out"></span>
+              </button>
+            </div>
+
+            <!-- Provider 4: GitHub -->
+            <div class="bg-surface-container-lowest p-3 rounded-2xl flex items-center justify-between shadow-sm border border-surface-container-high/80">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-surface-container-low border border-surface-container-high flex items-center justify-center">
+                  <span class="font-mono text-[11px] font-bold text-on-surface">GH</span>
+                </div>
+                <div class="flex flex-col">
+                  <span class="font-mono text-xs text-on-surface font-bold">GitHub PATs</span>
+                  <span class="font-mono text-[10px] text-on-surface-variant font-medium">ghp_*, gho_*, ghs_*</span>
+                </div>
+              </div>
+              <button id="toggle-sr-github" aria-checked="true" class="guardrail-toggle relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full bg-primary-container p-0.5 transition-colors duration-200 ease-in-out focus:outline-none shadow-sm" onclick="toggleSwitch(this)" role="switch" type="button">
+                <span class="pointer-events-none inline-block h-5 w-5 translate-x-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== TAB 4: SANDBOX ==================== -->
+        <div class="hidden flex-col gap-3" id="tab-panel-sandbox">
+          <div class="bg-surface-container-lowest rounded-2xl p-3.5 flex flex-col gap-1 shadow-[0_2px_10px_rgba(15,23,42,0.03)] border border-surface-container-high/80">
+            <div class="flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-primary text-[18px]">grid_view</span>
+              <span class="font-headline-sm text-xs text-on-surface font-bold">Containerization &amp; OS Isolation</span>
+            </div>
+            <p class="text-[12px] text-on-surface-variant">
+              Configure process encapsulation boundary for tool executions initiated by AI agents.
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-2">
+            <span class="text-[10px] font-mono text-on-surface-variant uppercase tracking-wider px-1 font-semibold">Selected Runtime Engine</span>
+
+            <!-- Docker -->
+            <label class="cursor-pointer bg-surface-container-lowest rounded-2xl p-3 flex flex-col gap-2 shadow-sm border border-surface-container-high/80 transition-all has-[:checked]:border-primary-container has-[:checked]:bg-surface-container-low/40">
+              <div class="flex items-start justify-between">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-lg bg-primary-fixed flex items-center justify-center text-primary font-bold">
+                    <span class="material-symbols-outlined text-[20px]">inventory_2</span>
+                  </div>
+                  <div class="flex flex-col">
+                    <div class="flex items-center gap-2">
+                      <span class="font-mono text-xs text-on-surface font-bold">Docker Container Guard</span>
+                      <span class="px-1.5 py-0.2 rounded-full bg-primary-fixed text-primary font-mono text-[9px] uppercase font-bold">Recommended</span>
+                    </div>
+                    <span class="text-[11px] text-on-surface-variant">Isolated cgroup namespaces, CPU cap: 2 cores, RAM cap: 4GB</span>
+                  </div>
+                </div>
+                <input checked="" class="accent-primary-container h-5 w-5 mt-1" name="runtime_engine" type="radio" value="docker"/>
+              </div>
+              <div class="flex items-center gap-2 pt-1">
+                <span class="px-2 py-0.5 rounded-full bg-surface-container-low border border-surface-container-high text-emerald-700 font-mono text-[10px] font-bold">Network: Isolated (Bridge)</span>
+                <span class="px-2 py-0.5 rounded-full bg-surface-container-low border border-surface-container-high text-on-surface-variant font-mono text-[10px] font-medium">Mount: RO-Root</span>
+              </div>
+            </label>
+
+            <!-- Landlock -->
+            <label class="cursor-pointer bg-surface-container-lowest rounded-2xl p-3 flex flex-col gap-2 shadow-sm border border-surface-container-high/80 transition-all has-[:checked]:border-primary-container has-[:checked]:bg-surface-container-low/40">
+              <div class="flex items-start justify-between">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-lg bg-surface-container-low border border-surface-container-high flex items-center justify-center text-secondary">
+                    <span class="material-symbols-outlined text-[20px]">fence</span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="font-mono text-xs text-on-surface font-bold">OS Landlock Sandbox</span>
+                    <span class="text-[11px] text-on-surface-variant">Linux kernel LSM unprivileged path sandboxing (zero-overhead)</span>
+                  </div>
+                </div>
+                <input class="accent-primary-container h-5 w-5 mt-1" name="runtime_engine" type="radio" value="landlock"/>
+              </div>
+            </label>
+
+            <!-- Native -->
+            <label class="cursor-pointer bg-surface-container-lowest rounded-2xl p-3 flex flex-col gap-2 shadow-sm border border-surface-container-high/80 transition-all has-[:checked]:border-primary-container has-[:checked]:bg-surface-container-low/40">
+              <div class="flex items-start justify-between">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-lg bg-error-container/60 text-error flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[20px]">warning</span>
+                  </div>
+                  <div class="flex flex-col">
+                    <div class="flex items-center gap-2">
+                      <span class="font-mono text-xs text-on-surface font-bold">Native Host Process</span>
+                      <span class="px-1.5 py-0.2 rounded-full bg-error-container text-error font-mono text-[9px] uppercase font-bold">Unsafe</span>
+                    </div>
+                    <span class="text-[11px] text-on-surface-variant">Executes on the bare host; Guardrails act purely via CLI proxy shim</span>
+                  </div>
+                </div>
+                <input class="accent-primary-container h-5 w-5 mt-1" name="runtime_engine" type="radio" value="native"/>
+              </div>
+            </label>
+          </div>
+
+          <!-- Active Sandbox Metric Indicator Segmented Meter -->
+          <div class="bg-surface-container-lowest rounded-2xl p-3.5 flex flex-col gap-2 shadow-sm border border-surface-container-high/80">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-mono text-on-surface-variant uppercase tracking-wider font-semibold">Host Enclosure Budget</span>
+              <span class="font-mono text-[10px] text-emerald-700 font-bold">74% Overhead Healthy</span>
+            </div>
+            <div class="w-full h-2.5 bg-surface-container-high rounded-full overflow-hidden flex shadow-inner">
+              <div class="h-full bg-primary-container" style="width: 45%;" title="Memory"></div>
+              <div class="h-full bg-emerald-400" style="width: 25%;" title="Tokens"></div>
+              <div class="h-full bg-slate-300" style="width: 12%;" title="Sockets"></div>
+            </div>
+            <div class="flex items-center justify-between text-[11px] font-mono text-on-surface-variant pt-1 font-medium">
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-primary-container"></span> RAM 1.8GB</span>
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> Context 32k</span>
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-slate-300"></span> 3 Pipes</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Save & Apply Banner Action -->
+        <div class="pt-2 flex flex-col gap-2">
+          <button class="w-full h-12 rounded-full bg-primary-container text-on-primary font-mono text-xs font-bold flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(79,70,229,0.35)] active:scale-[0.98] transition-transform" id="apply-policies-btn" onclick="applyGuardrails()" type="button">
+            <span class="material-symbols-outlined text-[20px]">bolt</span>
+            <span id="btn-text">Apply 14 Policies to Local Daemon</span>
+          </button>
+          <!-- Toast notice container -->
+          <div class="hidden items-center justify-center gap-2 py-2 px-3 rounded-full bg-emerald-100 text-emerald-800 font-mono text-[11px] font-semibold text-center border border-emerald-300" id="save-toast">
+            <span class="material-symbols-outlined text-[16px]">check_circle</span>
+            <span>Config synced to ~/.agentrelay/guardrails.json (Hot reloaded)</span>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
-  <!-- ================= BOTTOM NAVIGATION BAR (Matching Stitch Mockup) ================= -->
-  <nav class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200/90 py-2 px-6 z-40 shadow-nav">
-    <div class="max-w-md mx-auto flex items-center justify-between">
-      
-      <!-- HOME TAB -->
-      <button id="nav-btn-home" class="nav-btn flex flex-col items-center gap-1 py-1 px-4 rounded-2xl bg-brand-600 text-white transition active:scale-95 shadow-md shadow-brand-600/20">
-        <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20">
-          <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
-        </svg>
-        <span class="text-[10px] font-bold tracking-wider uppercase">HOME</span>
-      </button>
-
-      <!-- TERMINAL TAB -->
-      <button id="nav-btn-terminal" class="nav-btn flex flex-col items-center gap-1 py-1 px-4 rounded-2xl text-slate-500 hover:text-slate-900 transition active:scale-95">
-        <svg class="w-5 h-5 fill-none stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <rect x="2" y="4" width="20" height="16" rx="3"></rect>
-          <path d="M7 9l3 3-3 3M13 15h4"></path>
-        </svg>
-        <span class="text-[10px] font-bold tracking-wider uppercase">TERMINAL</span>
-      </button>
-
-      <!-- TASKS TAB -->
-      <button id="nav-btn-tasks" class="nav-btn flex flex-col items-center gap-1 py-1 px-4 rounded-2xl text-slate-500 hover:text-slate-900 transition active:scale-95">
-        <svg class="w-5 h-5 fill-none stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-        </svg>
-        <span class="text-[10px] font-bold tracking-wider uppercase">TASKS</span>
-      </button>
-
-      <!-- LOGS TAB -->
-      <button id="nav-btn-logs" class="nav-btn flex flex-col items-center gap-1 py-1 px-4 rounded-2xl text-slate-500 hover:text-slate-900 transition active:scale-95">
-        <svg class="w-5 h-5 fill-none stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
-        </svg>
-        <span class="text-[10px] font-bold tracking-wider uppercase">LOGS</span>
-      </button>
-
+  <!-- Compliance Export Toast Notification -->
+  <div id="exportToast" class="fixed bottom-20 left-4 right-4 z-40 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none flex items-center justify-between p-md rounded-2xl bg-white border border-indigo-200 text-slate-900 shadow-[0_8px_30px_rgba(15,23,42,0.12)] max-w-layout-max-width mx-auto">
+    <div class="flex items-center gap-xs min-w-0">
+      <span class="material-symbols-outlined text-emerald-600 text-[20px]">task_alt</span>
+      <div class="flex flex-col min-w-0">
+        <span class="font-headline-sm text-[13px] font-bold text-slate-900 truncate">Compliance Audit Bundle Ready</span>
+        <span class="font-mono text-[10px] text-slate-500">142 entries signed with local ed25519 key</span>
+      </div>
     </div>
-  </nav>
+    <span class="font-mono text-[11px] text-indigo-600 uppercase font-bold">Downloaded</span>
+  </div>
 
-  <!-- ================= SETTINGS MODAL ================= -->
-  <div id="settings-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-in fade-in duration-200 max-h-[90vh] overflow-y-auto custom-scrollbar">
-      <div class="flex items-center justify-between">
-        <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-          <span>⚙️</span> Device &amp; Agent Settings
-        </h3>
-        <button id="btn-close-settings" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
+  <!-- ========================================== -->
+  <!-- SETTINGS MODAL                             -->
+  <!-- ========================================== -->
+  <div id="settings-modal" class="hidden fixed inset-0 z-50 bg-inverse-surface/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-surface-container-lowest rounded-3xl max-w-sm w-full p-5 shadow-2xl border border-outline-variant/50 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-2 border-b border-surface-container">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary">tune</span>
+          <h4 class="text-sm font-bold text-on-surface">Device &amp; Engine Settings</h4>
+        </div>
+        <button id="btn-close-settings" class="text-on-surface-variant hover:text-on-surface text-sm font-bold">✕</button>
       </div>
-      
-      <!-- Device Pairing Section -->
+
       <div class="space-y-3 text-xs">
-        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Device Connection</div>
         <div>
-          <label class="block text-slate-600 mb-1 font-semibold">Device Identifier</label>
-          <input id="input-device-id" type="text" value="my-pc" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:outline-none focus:border-brand-500 font-mono">
+          <label class="block font-semibold text-on-surface mb-1">Device ID</label>
+          <input id="input-device-id" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-3 py-2 font-mono text-xs focus:outline-none" type="text" placeholder="my-pc"/>
         </div>
         <div>
-          <label class="block text-slate-600 mb-1 font-semibold">Pairing Secret Token</label>
-          <input id="input-secret-token" type="password" value="default_secret" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:outline-none focus:border-brand-500 font-mono">
+          <label class="block font-semibold text-on-surface mb-1">Secret Pairing Token</label>
+          <input id="input-secret-token" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-3 py-2 font-mono text-xs focus:outline-none" type="password" placeholder="default_secret"/>
+        </div>
+
+        <div class="pt-2 border-t border-surface-container space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="font-semibold text-on-surface">Gemini / Antigravity Key</label>
+            <span id="badge-gemini-key" class="text-[10px] font-mono text-outline">Not set</span>
+          </div>
+          <input id="input-gemini-key" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-3 py-2 font-mono text-xs focus:outline-none" type="password" placeholder="AIzaSy..."/>
+        </div>
+
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="font-semibold text-on-surface">Anthropic Claude Key</label>
+            <span id="badge-claude-key" class="text-[10px] font-mono text-outline">Not set</span>
+          </div>
+          <input id="input-claude-key" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-3 py-2 font-mono text-xs focus:outline-none" type="password" placeholder="sk-ant-..."/>
+        </div>
+
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="font-semibold text-on-surface">OpenAI Codex Key</label>
+            <span id="badge-codex-key" class="text-[10px] font-mono text-outline">Not set</span>
+          </div>
+          <input id="input-codex-key" class="w-full bg-surface-container-low border border-outline-variant/60 rounded-xl px-3 py-2 font-mono text-xs focus:outline-none" type="password" placeholder="sk-..."/>
         </div>
       </div>
 
-      <div class="border-t border-slate-100 my-2"></div>
-
-      <!-- AI Provider API Keys Section -->
-      <div class="space-y-3 text-xs">
-        <div class="flex items-center justify-between">
-          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">AI Coding Engines (Optional)</span>
-          <span class="text-[10px] text-slate-400">Add 1, 2, or all 3</span>
-        </div>
-
-        <!-- Gemini API Key -->
-        <div>
-          <label class="flex items-center justify-between text-slate-700 mb-1 font-semibold">
-            <span class="flex items-center gap-1.5"><span class="text-brand-600">⚡</span> Google Gemini / Antigravity</span>
-            <span id="badge-gemini-key" class="text-[9px] font-mono text-slate-400">Not set</span>
-          </label>
-          <input id="input-gemini-key" type="password" placeholder="AIzaSy..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:outline-none focus:border-brand-500 font-mono text-[11px]">
-        </div>
-
-        <!-- Claude API Key -->
-        <div>
-          <label class="flex items-center justify-between text-slate-700 mb-1 font-semibold">
-            <span class="flex items-center gap-1.5"><span class="text-orange-500">🟠</span> Anthropic Claude Code</span>
-            <span id="badge-claude-key" class="text-[9px] font-mono text-slate-400">Not set</span>
-          </label>
-          <input id="input-claude-key" type="password" placeholder="sk-ant-api03-..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:outline-none focus:border-orange-500 font-mono text-[11px]">
-        </div>
-
-        <!-- OpenAI Codex API Key -->
-        <div>
-          <label class="flex items-center justify-between text-slate-700 mb-1 font-semibold">
-            <span class="flex items-center gap-1.5"><span class="text-emerald-600">🟢</span> OpenAI Codex / GPT-4o</span>
-            <span id="badge-codex-key" class="text-[9px] font-mono text-slate-400">Not set</span>
-          </label>
-          <input id="input-codex-key" type="password" placeholder="sk-proj-..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:outline-none focus:border-emerald-500 font-mono text-[11px]">
-        </div>
-      </div>
-
-      <div class="flex justify-end gap-2 pt-2">
-        <button id="btn-save-settings" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-xl text-xs transition shadow-md shadow-brand-600/20 active:scale-98">
-          Save &amp; Connect
+      <div class="pt-2 flex justify-end gap-2">
+        <button id="btn-save-settings" class="w-full bg-primary text-on-primary py-2.5 rounded-2xl font-bold text-xs shadow-md active:scale-95 transition">
+          Save Configuration
         </button>
       </div>
     </div>
   </div>
 
+  <!-- ========================================== -->
+  <!-- FIXED BOTTOM TACTILE NAVIGATION DOCK       -->
+  <!-- ========================================== -->
+  <nav class="fixed bottom-0 inset-x-0 z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-dock border-t border-outline-variant/30">
+    <div class="max-w-layout-max-width mx-auto px-gutter py-2 flex items-center justify-between gap-1">
+      <button id="nav-btn-terminal" data-path="terminal-console" class="nav-btn flex-1 flex flex-col items-center justify-center gap-0.5 py-1 px-1 rounded-xl text-on-surface-variant transition-all hover:text-on-surface">
+        <span class="material-symbols-outlined text-[20px]">terminal</span>
+        <span class="font-mono text-[9px] uppercase tracking-wider font-semibold">Terminal</span>
+      </button>
+      <button id="nav-btn-intercepts" data-path="intercept-alerts" class="nav-btn flex-1 flex flex-col items-center justify-center gap-0.5 py-1 px-1 rounded-xl text-on-surface-variant transition-all hover:text-on-surface relative">
+        <div class="relative flex items-center justify-center">
+          <span class="material-symbols-outlined text-[20px]">shield</span>
+          <span class="absolute -top-1 -right-2 flex h-3.5 min-w-3.5 px-0.5 items-center justify-center rounded-full bg-error text-on-error font-mono text-[8px] font-bold shadow-xs">1</span>
+        </div>
+        <span class="font-mono text-[9px] uppercase tracking-wider font-semibold">Intercepts</span>
+      </button>
+      <button id="nav-btn-logs" data-path="audit-logs" class="nav-btn flex-1 flex flex-col items-center justify-center gap-0.5 py-1 px-1 rounded-xl text-on-surface-variant transition-all hover:text-on-surface">
+        <span class="material-symbols-outlined text-[20px]">history_edu</span>
+        <span class="font-mono text-[9px] uppercase tracking-wider font-semibold">Audit Logs</span>
+      </button>
+      <button id="nav-btn-guardrails" data-path="guardrail-policies" class="nav-btn flex-1 flex flex-col items-center justify-center gap-0.5 py-1 px-1 rounded-xl text-on-surface-variant transition-all hover:text-on-surface">
+        <span class="material-symbols-outlined text-[20px]">policy</span>
+        <span class="font-mono text-[9px] uppercase tracking-wider font-semibold">Guardrails</span>
+      </button>
+      <button id="nav-btn-home" data-path="system-overview" class="nav-btn flex-1 flex flex-col items-center justify-center gap-0.5 py-1 px-1 rounded-xl text-primary font-bold transition-all bg-primary-container text-on-primary shadow-sm shadow-primary/30">
+        <span class="material-symbols-outlined text-[20px]">dashboard</span>
+        <span class="font-mono text-[9px] uppercase tracking-wider font-semibold">Home</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Dynamic Runtime Clock & Terminal Helpers Script -->
+  <script>
+    (function() {
+      const clock = document.getElementById('runtime-clock');
+      let seconds = 14 * 60 + 32;
+      setInterval(() => {
+        seconds++;
+        const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
+        const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+        const s = String(seconds % 60).padStart(2, '0');
+        if (clock) clock.textContent = `${h}:${m}:${s}`;
+      }, 1000);
+
+      // Terminal Quick Action Buttons
+      const pauseBtn = document.getElementById('btn-pause-stream');
+      let isPaused = false;
+      if (pauseBtn) {
+        pauseBtn.addEventListener('click', () => {
+          isPaused = !isPaused;
+          pauseBtn.querySelector('span:nth-child(2)').textContent = isPaused ? 'Resume Stream' : 'Pause Stream';
+          if (window.appendTerminalRow) {
+            window.appendTerminalRow('[stream]', isPaused ? 'Terminal stream output suspended.' : 'Terminal stream resumed.', 'text-secondary-container');
+          }
+        });
+      }
+
+      const sigintBtn = document.getElementById('btn-sigint');
+      if (sigintBtn) {
+        sigintBtn.addEventListener('click', () => {
+          if (window.appendTerminalRow) {
+            window.appendTerminalRow('^C', 'SIGINT force interruption confirmed.', 'text-error-container');
+          }
+        });
+      }
+
+      const copyBtn = document.getElementById('btn-copy-logs');
+      if (copyBtn) {
+        copyBtn.addEventListener('click', () => {
+          const orig = copyBtn.querySelector('span:nth-child(2)').textContent;
+          copyBtn.querySelector('span:nth-child(2)').textContent = 'Copied!';
+          setTimeout(() => {
+            copyBtn.querySelector('span:nth-child(2)').textContent = orig;
+          }, 1500);
+        });
+      }
+
+      const approveBtn = document.getElementById('btn-approve');
+      if (approveBtn) {
+        approveBtn.addEventListener('click', () => {
+          if (window.appendTerminalRow) {
+            window.appendTerminalRow('[agent]', 'Diff approved and committed to HEAD.', 'text-on-tertiary-container');
+          }
+        });
+      }
+    })();
+  </script>
+
+  <!-- Main JavaScript Engine -->
   <script src="/static/app.js"></script>
 </body>
 </html>
