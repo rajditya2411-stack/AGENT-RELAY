@@ -2138,3 +2138,122 @@ window.fetchDeviceIntercepts = fetchDeviceIntercepts;
 // Fetch Intercepts on boot
 fetchDeviceIntercepts();
 
+// =====================================================================
+// Header Agent Switcher & Interactive Dropdown
+// =====================================================================
+const headerAgentBadge = document.getElementById("header-agent-badge");
+const currentAgentText = document.getElementById("current-agent-text");
+const profileActiveAgent = document.getElementById("profile-active-agent");
+const availableAgents = [
+  { id: "claude", name: "Claude Code", badgeHtml: "🟠 Claude Code" },
+  { id: "codex", name: "OpenAI Codex", badgeHtml: "🟢 OpenAI Codex" },
+  { id: "antigravity", name: "Antigravity", badgeHtml: "⚡ Antigravity" }
+];
+let currentAgentIndex = 0;
+
+if (headerAgentBadge) {
+  headerAgentBadge.addEventListener("click", () => {
+    currentAgentIndex = (currentAgentIndex + 1) % availableAgents.length;
+    const ag = availableAgents[currentAgentIndex];
+    if (currentAgentText) currentAgentText.textContent = ag.name;
+    if (profileActiveAgent) profileActiveAgent.textContent = ag.name;
+    if (activeProject) {
+      activeProject.agent = ag.id;
+      activeProject.agent_name = ag.name;
+      activeProject.agent_badge = ag.badgeHtml;
+      if (chatAgentStatus) chatAgentStatus.textContent = `${ag.badgeHtml} Agent`;
+    }
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        type: "update_agent",
+        agent: ag.id,
+        agent_name: ag.name
+      }));
+    }
+  });
+}
+
+// =====================================================================
+// User Profile Modal Event Listeners
+// =====================================================================
+const headerUserBtn = document.getElementById("header-user-btn");
+const userProfileModal = document.getElementById("user-profile-modal");
+const btnCloseProfile = document.getElementById("btn-close-profile");
+
+if (headerUserBtn && userProfileModal) {
+  headerUserBtn.addEventListener("click", () => {
+    const nodeLabel = document.getElementById("profile-node-label");
+    if (nodeLabel) nodeLabel.textContent = `${deviceId.toUpperCase()} (127.0.0.1:58765)`;
+    userProfileModal.classList.remove("hidden");
+  });
+}
+if (btnCloseProfile && userProfileModal) {
+  btnCloseProfile.addEventListener("click", () => {
+    userProfileModal.classList.add("hidden");
+  });
+}
+
+// =====================================================================
+// Reset / Simulate Intercept Alert
+// =====================================================================
+async function resetInterceptDemo() {
+  try {
+    const res = await fetch(`/api/devices/${deviceId}/intercepts/reset`, { method: "POST" });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.intercepts) {
+        activeIntercepts = data.intercepts;
+      }
+    }
+  } catch (e) {
+    console.warn("Could not reset backend intercepts:", e);
+  }
+
+  if (!activeIntercepts || activeIntercepts.length === 0) {
+    activeIntercepts = [{
+      id: "int-8765",
+      title: "Security Intercept",
+      severity: "CRITICAL",
+      risk_score: 9.4,
+      rule_id: "PG-04",
+      rule_name: "PathGuard (PG-04)",
+      agent: "claude",
+      agent_name: "Claude Code",
+      pid: 8765,
+      target: "Unmasked .env",
+      command: "cat /Users/dev/.env",
+      timeout_seconds: 40,
+      status: "pending",
+      quarantine: true,
+      spec: {
+        rule: "RuleEngine:PG-04",
+        severity_score: "Severity 9.4 / Root Credential Vector",
+        reason: "ACCESS DENIED: Root environment configuration traversal detected.",
+        inode: "/workspace/.env",
+        caller_pid: 8765,
+        caller_name: "claude-agent-daemon",
+        hash: "c7e4...09d8"
+      }
+    }];
+  } else {
+    activeIntercepts[0].status = "pending";
+  }
+  updateInterceptBadge(1);
+  renderInterceptsView();
+}
+window.resetInterceptDemo = resetInterceptDemo;
+
+// =====================================================================
+// Enhanced Clipboard Log Copy
+// =====================================================================
+const btnCopyLogsEl = document.getElementById("btn-copy-logs");
+if (btnCopyLogsEl) {
+  btnCopyLogsEl.addEventListener("click", () => {
+    const termBox = document.getElementById("terminal-scroll-area");
+    if (termBox) {
+      navigator.clipboard.writeText(termBox.innerText).catch(() => {});
+    }
+  });
+}
+
+
