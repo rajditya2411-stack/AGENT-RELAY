@@ -118,6 +118,7 @@ const navBtnTasks = document.getElementById("nav-btn-tasks");
 const navBtnLogs = document.getElementById("nav-btn-logs");
 const navBtnGuardrails = document.getElementById("nav-btn-guardrails");
 const viewGuardrails = document.getElementById("view-guardrails");
+const viewIntercepts = document.getElementById("view-intercepts");
 
 // Settings Modal
 const settingsModal = document.getElementById("settings-modal");
@@ -172,6 +173,7 @@ function switchTab(tabName) {
   if (viewTasks) viewTasks.classList.add("hidden");
   if (viewLogs) viewLogs.classList.add("hidden");
   if (viewGuardrails) viewGuardrails.classList.add("hidden");
+  if (viewIntercepts) viewIntercepts.classList.add("hidden");
 
   if (tabName === "home") {
     if (activeSession) {
@@ -191,14 +193,20 @@ function switchTab(tabName) {
     if (viewLogs) viewLogs.classList.remove("hidden");
     renderLogsView();
   } else if (tabName === "intercepts") {
-    if (viewLogs) viewLogs.classList.remove("hidden");
-    if (typeof filterAuditLogs === "function") {
-      filterAuditLogs("blocked");
-    }
-    renderLogsView();
+    if (viewIntercepts) viewIntercepts.classList.remove("hidden");
+    renderInterceptsView();
   } else if (tabName === "guardrails") {
     if (viewGuardrails) viewGuardrails.classList.remove("hidden");
     fetchGuardrailPolicies();
+  }
+  const headerSubTitle = document.getElementById("header-sub-title");
+  if (headerSubTitle) {
+    if (tabName === "home") headerSubTitle.textContent = "Remote Control & Shield";
+    else if (tabName === "terminal") headerSubTitle.textContent = "Terminal Console";
+    else if (tabName === "intercepts") headerSubTitle.textContent = "Intercept Alerts";
+    else if (tabName === "tasks") headerSubTitle.textContent = "Active Tasks";
+    else if (tabName === "logs") headerSubTitle.textContent = "Audit Logs";
+    else if (tabName === "guardrails") headerSubTitle.textContent = "Guardrail Policies";
   }
 }
 window.switchTab = switchTab;
@@ -822,6 +830,16 @@ function handleServerEvent(evt) {
       if (payload.guardrail_policies) {
         currentGuardrailPolicies = payload.guardrail_policies;
         if (typeof renderGuardrailUI === "function") renderGuardrailUI(currentGuardrailPolicies);
+      }
+      if (payload.active_intercepts) {
+        activeIntercepts = payload.active_intercepts;
+        if (typeof updateInterceptBadge === "function") updateInterceptBadge();
+      }
+      break;
+
+    case "intercept_action":
+      if (payload && payload.pending_count !== undefined) {
+        if (typeof updateInterceptBadge === "function") updateInterceptBadge(payload.pending_count);
       }
       break;
 
@@ -1654,3 +1672,469 @@ window.renderGuardrailUI = renderGuardrailUI;
 
 // Fetch Guardrails on boot
 fetchGuardrailPolicies();
+
+// =====================================================================
+// Intercept Alerts Engine & Micro-Interactions
+// =====================================================================
+let activeIntercepts = [
+  {
+    id: "int-8765",
+    title: "Security Intercept",
+    severity: "CRITICAL",
+    risk_score: 9.4,
+    rule_id: "PG-04",
+    rule_name: "PathGuard (PG-04)",
+    agent: "claude",
+    agent_name: "Claude Code",
+    pid: 8765,
+    target: "Unmasked .env",
+    command: "cat /Users/dev/.env",
+    timeout_seconds: 40,
+    created_at: Date.now(),
+    status: "pending",
+  }
+];
+
+let interceptTimer = null;
+let interceptTimeLeft = 40;
+
+function updateInterceptBadge(count) {
+  const badge = document.getElementById("nav-intercept-badge");
+  if (!badge) return;
+  if (count === undefined) {
+    count = activeIntercepts.filter((i) => i.status === "pending").length;
+  }
+  if (count > 0) {
+    badge.textContent = count;
+    badge.classList.remove("hidden");
+  } else {
+    badge.classList.add("hidden");
+  }
+}
+window.updateInterceptBadge = updateInterceptBadge;
+
+function startInterceptTimer(duration = 40) {
+  if (interceptTimer) clearInterval(interceptTimer);
+  interceptTimeLeft = duration;
+  const countdownEl = document.getElementById("countdown");
+  const countdownBar = document.getElementById("countdown-bar");
+
+  if (countdownEl) countdownEl.textContent = `${interceptTimeLeft}s`;
+  if (countdownBar) countdownBar.style.width = "100%";
+
+  interceptTimer = setInterval(() => {
+    interceptTimeLeft--;
+    if (countdownEl) countdownEl.textContent = `${interceptTimeLeft}s`;
+    if (countdownBar) {
+      const pct = Math.max(0, (interceptTimeLeft / duration) * 100);
+      countdownBar.style.width = `${pct}%`;
+    }
+
+    if (interceptTimeLeft <= 0) {
+      clearInterval(interceptTimer);
+      handleInterceptAction("block", "Auto-timeout safety block invoked. Process PID #8765 dropped.");
+    }
+  }, 1000);
+}
+
+function switchInterceptSubTab(subtab) {
+  const tabs = ["snippet", "lineage", "diff"];
+  tabs.forEach((t) => {
+    const btn = document.getElementById(`intercept-subtab-${t}`);
+    const box = document.getElementById(`intercept-box-${t}`);
+    if (!btn || !box) return;
+
+    if (t === subtab) {
+      btn.className = "flex-1 py-1 px-2 rounded-lg bg-white font-bold text-[#4f46e5] shadow-xs flex items-center justify-center gap-1 border border-slate-200/60";
+      box.classList.remove("hidden");
+      box.classList.add("flex");
+    } else {
+      btn.className = "flex-1 py-1 px-2 rounded-lg text-slate-500 font-medium hover:text-slate-800 flex items-center justify-center gap-1";
+      box.classList.remove("flex");
+      box.classList.add("hidden");
+    }
+  });
+}
+window.switchInterceptSubTab = switchInterceptSubTab;
+
+function copyInterceptCode() {
+  const cmd = document.getElementById("intercept-cmd-text")?.textContent || "cat /Users/dev/.env";
+  const label = document.getElementById("copy-intercept-label");
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(cmd);
+  }
+  if (label) {
+    const orig = label.textContent;
+    label.textContent = "Copied!";
+    setTimeout(() => { label.textContent = orig; }, 1500);
+  }
+}
+window.copyInterceptCode = copyInterceptCode;
+
+function toggleInterceptWrap() {
+  const content = document.getElementById("intercept-code-content");
+  if (content) {
+    content.classList.toggle("overflow-x-auto");
+    content.classList.toggle("whitespace-pre-wrap");
+  }
+}
+window.toggleInterceptWrap = toggleInterceptWrap;
+
+function explainInterceptRisk() {
+  const box = document.getElementById("intercept-explain-box");
+  if (box) {
+    box.classList.toggle("hidden");
+  }
+}
+window.explainInterceptRisk = explainInterceptRisk;
+
+function maskAndProceed() {
+  handleInterceptAction("mask_proceed");
+}
+window.maskAndProceed = maskAndProceed;
+
+function dryRunIntercept() {
+  handleInterceptAction("dry_run");
+}
+window.dryRunIntercept = dryRunIntercept;
+
+async function handleInterceptAction(action, customMsg) {
+  if (interceptTimer) clearInterval(interceptTimer);
+
+  const card = document.getElementById("interceptCard");
+  const cbQuarantine = document.getElementById("cb-quarantine");
+  const quarantine = cbQuarantine ? cbQuarantine.checked : true;
+
+  // Mark local intercept resolved
+  if (activeIntercepts.length) {
+    activeIntercepts[0].status = action;
+  }
+  updateInterceptBadge(0);
+
+  // Optimistic UI Update matching Screen 5 tactile animations
+  if (card) {
+    if (action === "block") {
+      card.innerHTML = `
+        <div class="p-8 flex flex-col items-center justify-center text-center gap-3 bg-white rounded-2xl">
+          <div class="h-16 w-16 rounded-full bg-rose-50 border border-rose-200 flex items-center justify-center mb-1 animate-bounce shadow-sm">
+            <span class="material-symbols-outlined text-rose-600 text-[36px]">shield_lock</span>
+          </div>
+          <span class="font-bold text-[18px] text-slate-900">Agent Process Terminated</span>
+          <span class="text-[13px] text-slate-600 max-w-[280px] leading-relaxed">
+            ${customMsg || "Process PID #8765 immediately killed. File system rollbacks verified."}
+          </span>
+          <div class="mt-3 flex items-center gap-2 bg-emerald-50 border border-emerald-200 px-3.5 py-1.5 rounded-full">
+            <span class="h-2 w-2 rounded-full bg-emerald-600 animate-pulse"></span>
+            <span class="font-mono text-[11px] font-semibold text-emerald-800">Sandbox Sanitized &amp; Locked</span>
+          </div>
+          <button onclick="renderInterceptsView()" class="mt-3 text-xs font-mono font-bold text-[#4f46e5] hover:underline flex items-center gap-1">
+            <span class="material-symbols-outlined text-sm">refresh</span>
+            <span>Reset Demo Intercept</span>
+          </button>
+        </div>
+      `;
+    } else if (action === "allow_once") {
+      card.innerHTML = `
+        <div class="p-8 flex flex-col items-center justify-center text-center gap-3 bg-white rounded-2xl">
+          <div class="w-14 h-14 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 shadow-sm">
+            <span class="material-symbols-outlined text-[32px]">lock_clock</span>
+          </div>
+          <span class="font-bold text-[18px] text-slate-900">One-Time Exemption Granted</span>
+          <span class="text-[13px] text-slate-600 max-w-[280px] leading-relaxed">
+            Stream reading .env unredacted for single evaluation cycle (1h expiration).
+          </span>
+          <div class="mt-2 text-indigo-600 font-mono text-[11px] font-semibold flex items-center gap-1">
+            <span class="material-symbols-outlined text-sm animate-spin">sync</span>
+            <span>Resuming Agent Execution...</span>
+          </div>
+          <button onclick="renderInterceptsView()" class="mt-3 text-xs font-mono font-bold text-[#4f46e5] hover:underline flex items-center gap-1">
+            <span class="material-symbols-outlined text-sm">refresh</span>
+            <span>Reset Demo Intercept</span>
+          </button>
+        </div>
+      `;
+    } else if (action === "whitelist") {
+      card.innerHTML = `
+        <div class="p-8 flex flex-col items-center justify-center text-center gap-3 bg-white rounded-2xl">
+          <div class="w-14 h-14 rounded-full bg-indigo-50 border border-indigo-200 flex items-center justify-center text-[#4f46e5] shadow-sm">
+            <span class="material-symbols-outlined text-[32px]">verified_user</span>
+          </div>
+          <span class="font-bold text-[18px] text-slate-900">Rule Whitelisted</span>
+          <span class="text-[13px] text-slate-600 max-w-[280px] leading-relaxed">
+            Dotenv access rule PG-04 suppressed for current project root.
+          </span>
+          <div class="mt-2 text-emerald-600 font-mono text-[11px] font-semibold">
+            ✓ Policy Updated in Guardrails
+          </div>
+          <button onclick="renderInterceptsView()" class="mt-3 text-xs font-mono font-bold text-[#4f46e5] hover:underline flex items-center gap-1">
+            <span class="material-symbols-outlined text-sm">refresh</span>
+            <span>Reset Demo Intercept</span>
+          </button>
+        </div>
+      `;
+    } else if (action === "mask_proceed") {
+      card.innerHTML = `
+        <div class="p-8 flex flex-col items-center justify-center text-center gap-3 bg-white rounded-2xl">
+          <div class="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shadow-sm">
+            <span class="material-symbols-outlined text-[32px]">bolt</span>
+          </div>
+          <span class="font-bold text-[18px] text-slate-900">Entropy Mask Applied</span>
+          <span class="text-[13px] text-slate-600 max-w-[280px] leading-relaxed">
+            AWS_SECRET_ACCESS_KEY sanitized to [REDACTED] in memory pipe.
+          </span>
+          <div class="mt-2 text-emerald-700 font-mono text-[11px] font-semibold">
+            Resuming execution in safe mode...
+          </div>
+          <button onclick="renderInterceptsView()" class="mt-3 text-xs font-mono font-bold text-[#4f46e5] hover:underline flex items-center gap-1">
+            <span class="material-symbols-outlined text-sm">refresh</span>
+            <span>Reset Demo Intercept</span>
+          </button>
+        </div>
+      `;
+    } else if (action === "dry_run") {
+      card.innerHTML = `
+        <div class="p-8 flex flex-col items-center justify-center text-center gap-3 bg-white rounded-2xl">
+          <div class="w-14 h-14 rounded-full bg-slate-100 border border-slate-300 flex items-center justify-center text-slate-700 shadow-sm">
+            <span class="material-symbols-outlined text-[32px]">science</span>
+          </div>
+          <span class="font-bold text-[18px] text-slate-900">Dry-Run Inspection</span>
+          <span class="text-[13px] text-slate-600 max-w-[280px] leading-relaxed">
+            Subshell executed in isolated ephemeral container jail-01 without disk access.
+          </span>
+          <div class="mt-2 text-slate-600 font-mono text-[11px] font-semibold">
+            Inspection complete. No files committed.
+          </div>
+          <button onclick="renderInterceptsView()" class="mt-3 text-xs font-mono font-bold text-[#4f46e5] hover:underline flex items-center gap-1">
+            <span class="material-symbols-outlined text-sm">refresh</span>
+            <span>Reset Demo Intercept</span>
+          </button>
+        </div>
+      `;
+    }
+  }
+
+  // Transmit to Daemon
+  try {
+    const res = await fetch(`/api/devices/${deviceId}/intercepts/int-8765/action`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, quarantine }),
+    });
+    const result = await res.json();
+    console.log("Daemon intercept response:", result);
+  } catch (err) {
+    console.warn("Daemon intercept action sync:", err);
+  }
+}
+window.handleInterceptAction = handleInterceptAction;
+
+function renderInterceptsView() {
+  const card = document.getElementById("interceptCard");
+  if (activeIntercepts.length) {
+    activeIntercepts[0].status = "pending";
+  }
+  updateInterceptBadge(1);
+
+  if (card) {
+    card.innerHTML = `
+      <div class="flex flex-col gap-2.5">
+        <div class="flex flex-col gap-1.5 pb-2 border-b border-slate-100">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="relative flex h-3 w-3">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-500 shadow-sm"></span>
+              </div>
+              <h2 class="text-[15px] font-bold text-slate-900 tracking-tight leading-none">Security Intercept</h2>
+              <span class="font-mono text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">CRITICAL</span>
+              <span class="font-mono text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">Risk: 9.4</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <div class="flex items-center gap-1 text-slate-700 bg-slate-100/90 border border-slate-200/90 px-2 py-0.5 rounded-full">
+                <span class="material-symbols-outlined text-[13px] text-rose-500">timer</span>
+                <span class="font-mono text-[11px] font-bold text-slate-900" id="countdown">40s</span>
+              </div>
+              <span class="text-[9px] font-mono text-slate-400">auto-block</span>
+            </div>
+          </div>
+          <div class="flex items-center justify-between text-[10px] font-mono text-slate-500">
+            <div class="flex items-center gap-1 truncate">
+              <span class="text-slate-800 font-semibold" id="intercept-agent-name">Claude Code</span>
+              <span>•</span>
+              <span id="intercept-pid-label">PID #8765</span>
+              <span>•</span>
+              <span class="text-rose-600 font-bold" id="intercept-rule-label">PathGuard (PG-04)</span>
+            </div>
+            <span class="text-[10px] font-mono text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200/70" id="intercept-target-badge">Unmasked .env</span>
+          </div>
+          <div class="w-full bg-slate-100 rounded-full h-1 overflow-hidden mt-0.5">
+            <div id="countdown-bar" class="bg-gradient-to-r from-rose-500 to-red-600 h-full rounded-full w-full duration-1000 transition-all"></div>
+          </div>
+        </div>
+
+        <div class="flex items-center bg-slate-100/90 p-0.5 rounded-xl border border-slate-200/80 font-mono text-[10px]" id="intercept-subtabs">
+          <button id="intercept-subtab-snippet" onclick="switchInterceptSubTab('snippet')" class="flex-1 py-1 px-2 rounded-lg bg-white font-bold text-[#4f46e5] shadow-xs flex items-center justify-center gap-1 border border-slate-200/60">
+            <span class="material-symbols-outlined text-[12px]">terminal</span>
+            <span>Code Snippet</span>
+          </button>
+          <button id="intercept-subtab-lineage" onclick="switchInterceptSubTab('lineage')" class="flex-1 py-1 px-2 rounded-lg text-slate-500 font-medium hover:text-slate-800 flex items-center justify-center gap-1">
+            <span class="material-symbols-outlined text-[12px]">account_tree</span>
+            <span>Lineage</span>
+          </button>
+          <button id="intercept-subtab-diff" onclick="switchInterceptSubTab('diff')" class="flex-1 py-1 px-2 rounded-lg text-slate-500 font-medium hover:text-slate-800 flex items-center justify-center gap-1">
+            <span class="material-symbols-outlined text-[12px]">difference</span>
+            <span>Live Diff</span>
+          </button>
+        </div>
+
+        <div id="intercept-box-snippet" class="neomorph-code rounded-xl text-slate-200 font-mono text-[11px] flex flex-col overflow-hidden border border-slate-800 shadow-sm">
+          <div class="flex items-center justify-between px-2.5 py-1.5 bg-slate-950/80 border-b border-slate-800/90">
+            <div class="flex items-center gap-1.5 truncate">
+              <span class="text-cyan-400 font-bold select-none text-[10px]">exec $</span>
+              <span class="text-white font-medium text-[11px] truncate" id="intercept-cmd-text">cat /Users/dev/.env</span>
+            </div>
+            <div class="flex items-center gap-1">
+              <button id="btn-copy-intercept" onclick="copyInterceptCode()" class="text-slate-400 hover:text-white text-[9px] font-mono flex items-center gap-0.5 px-1.5 py-0.5 rounded hover:bg-slate-800/80 transition-colors">
+                <span class="material-symbols-outlined text-[11px]">content_copy</span>
+                <span id="copy-intercept-label">Copy</span>
+              </button>
+              <button id="btn-wrap-intercept" onclick="toggleInterceptWrap()" class="text-indigo-300 hover:text-indigo-100 text-[9px] font-mono flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-indigo-950/70 border border-indigo-800/60 hover:bg-indigo-900/60 transition-colors">
+                <span class="material-symbols-outlined text-[11px]">wrap_text</span>
+                <span>Wrap</span>
+              </button>
+            </div>
+          </div>
+          <div id="intercept-code-content" class="p-2.5 flex flex-col gap-1 text-[10.5px] leading-snug select-text bg-[#0f172a]">
+            <div class="flex items-start gap-2">
+              <span class="text-slate-600 select-none text-[9px] w-2.5 text-right pt-0.5">1</span>
+              <div class="text-slate-300 flex-1 truncate"><span class="text-rose-400 font-semibold">AWS_SECRET_ACCESS_KEY</span>=<span class="bg-rose-950 text-rose-300 border border-rose-700/80 px-1 py-0.2 rounded font-bold shadow-xs">AKIA... [REDACTED]</span></div>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-slate-600 select-none text-[9px] w-2.5 text-right pt-0.5">2</span>
+              <div class="text-slate-400 truncate opacity-85 flex-1">DATABASE_URL="postgres://dev:****@127.0.0.1:5432"</div>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-slate-600 select-none text-[9px] w-2.5 text-right pt-0.5">3</span>
+              <div class="text-slate-400 truncate opacity-70 flex-1">STRIPE_API_KEY="sk_live_********************"</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="intercept-box-lineage" class="hidden neomorph-code rounded-xl text-slate-200 font-mono text-[11px] p-3 flex-col gap-2 border border-slate-800 shadow-sm bg-[#0f172a]">
+          <div class="flex items-center justify-between text-[10px] text-cyan-400 font-bold border-b border-slate-800 pb-1.5">
+            <span>PROCESS LINEAGE HIERARCHY</span>
+            <span class="text-slate-400">cgroup: /sandbox/jail-01</span>
+          </div>
+          <div class="flex flex-col gap-1 text-[11px] py-1">
+            <div class="text-slate-400 flex items-center gap-2">
+              <span class="text-slate-600">PID 1</span>
+              <span class="text-slate-300">systemd init (Host root)</span>
+            </div>
+            <div class="text-slate-400 flex items-center gap-2 pl-3 border-l border-slate-800">
+              <span class="text-slate-600">PID 7412</span>
+              <span class="text-slate-300">/bin/bash -l (pty-2)</span>
+            </div>
+            <div class="text-slate-400 flex items-center gap-2 pl-6 border-l border-slate-800">
+              <span class="text-slate-600">PID 8491</span>
+              <span class="text-indigo-300 font-bold">claude-agent-daemon (Local AI)</span>
+            </div>
+            <div class="text-rose-400 flex items-center gap-2 pl-9 border-l border-rose-800 font-bold bg-rose-950/40 py-1 rounded">
+              <span class="text-rose-400">PID 8765</span>
+              <span>⚡ [INTERCEPTED] cat /Users/dev/.env</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="intercept-box-diff" class="hidden neomorph-code rounded-xl text-slate-200 font-mono text-[11px] p-3 flex-col gap-2 border border-slate-800 shadow-sm bg-[#0f172a]">
+          <div class="flex items-center justify-between text-[10px] text-emerald-400 font-bold border-b border-slate-800 pb-1.5">
+            <span>SECURITY PERIMETER INTERCEPT DELTA</span>
+            <span class="text-rose-400 font-bold">DENIED</span>
+          </div>
+          <div class="text-[11px] font-mono leading-relaxed p-2 rounded bg-slate-950/70 border border-slate-800 space-y-1">
+            <div class="text-rose-400">- ATTEMPTED READ: /Users/dev/.env</div>
+            <div class="text-slate-400">  INODE: 1403921 (Perms: 0600, Owner: dev)</div>
+            <div class="text-emerald-400">+ ENFORCED: Zero-Tolerance Policy PG-04 Active</div>
+            <div class="text-slate-400">  ACTION: Quarantine process, intercept prompt before egress</div>
+          </div>
+        </div>
+
+        <div id="intercept-explain-box" class="hidden p-2.5 rounded-xl bg-indigo-50/90 border border-indigo-200 text-slate-800 font-mono text-[11px] flex flex-col gap-1">
+          <div class="flex items-center justify-between text-[#4f46e5] font-bold text-[11px]">
+            <div class="flex items-center gap-1">
+              <span class="material-symbols-outlined text-[14px]">auto_awesome</span>
+              <span>Security Analysis (Risk 9.4)</span>
+            </div>
+            <button onclick="document.getElementById('intercept-explain-box').classList.add('hidden')" class="text-slate-400 hover:text-slate-700">✕</button>
+          </div>
+          <p class="text-[11px] text-slate-700 leading-snug font-sans">
+            Reading <code class="font-mono bg-white px-1 py-0.5 rounded text-rose-600">.env</code> directly exposes unredacted AWS &amp; Stripe production secret keys to the model's LLM context window. If approved, these secrets may persist in outbound telemetry logs.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-3 gap-1.5">
+          <button id="btn-explain-risk" onclick="explainInterceptRisk()" class="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-indigo-50 hover:bg-indigo-100/80 border border-indigo-200/80 text-[#4f46e5] font-mono text-[10px] font-bold transition-all shadow-2xs active:scale-95">
+            <span class="material-symbols-outlined text-[13px]">auto_awesome</span>
+            <span class="truncate">Explain Risk</span>
+          </button>
+          <button id="btn-mask-proceed" onclick="maskAndProceed()" class="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200/80 text-emerald-700 font-mono text-[10px] font-bold transition-all shadow-2xs active:scale-95">
+            <span class="material-symbols-outlined text-[13px]">bolt</span>
+            <span class="truncate">Mask &amp; Proceed</span>
+          </button>
+          <button id="btn-dry-run" onclick="dryRunIntercept()" class="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-mono text-[10px] font-bold transition-all shadow-2xs active:scale-95">
+            <span class="material-symbols-outlined text-[13px]">science</span>
+            <span class="truncate">Dry-Run</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-2 pt-2 border-t border-slate-100">
+        <div class="flex items-center justify-between px-2 py-1 rounded-lg bg-slate-50/90 border border-slate-200/70">
+          <label class="flex items-center gap-1.5 cursor-pointer select-none">
+            <input id="cb-quarantine" checked class="rounded border-slate-300 text-[#4f46e5] focus:ring-0 w-3 h-3" type="checkbox"/>
+            <span class="font-mono text-[10px] text-slate-600 font-medium">Quarantine process tree &amp; memory dump</span>
+          </label>
+          <span class="material-symbols-outlined text-[14px] text-slate-400" title="Takes crash dump and halts child PIDs">info</span>
+        </div>
+
+        <button class="flex items-center justify-center gap-2 h-10 w-full rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-mono text-[12px] uppercase tracking-wider font-bold shadow-[0_4px_14px_rgba(220,38,38,0.3)] active:scale-[0.98] transition-all" id="blockBtn" onclick="handleInterceptAction('block')">
+          <span class="material-symbols-outlined text-[17px]">pan_tool</span>
+          <span>Block &amp; Terminate PID</span>
+        </button>
+
+        <div class="grid grid-cols-2 gap-2">
+          <button class="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300/80 font-mono text-[11px] uppercase font-bold active:scale-[0.98] transition-all shadow-sm" id="allowOnceBtn" onclick="handleInterceptAction('allow_once')">
+            <span class="material-symbols-outlined text-[15px] text-amber-600">lock_open</span>
+            <span>Allow Once (1h)</span>
+          </button>
+          <button class="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-mono text-[11px] uppercase font-bold active:scale-[0.98] transition-all shadow-sm" id="allowAlwaysBtn" onclick="handleInterceptAction('whitelist')">
+            <span class="material-symbols-outlined text-[15px] text-slate-500">verified_user</span>
+            <span>Whitelist PG-04</span>
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  startInterceptTimer(40);
+}
+window.renderInterceptsView = renderInterceptsView;
+
+async function fetchDeviceIntercepts() {
+  try {
+    const res = await fetch(`/api/devices/${deviceId}/intercepts`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.intercepts) {
+        activeIntercepts = data.intercepts;
+        updateInterceptBadge(data.pending_count);
+      }
+    }
+  } catch (err) {
+    console.error("Error fetching device intercepts:", err);
+  }
+}
+window.fetchDeviceIntercepts = fetchDeviceIntercepts;
+
+// Fetch Intercepts on boot
+fetchDeviceIntercepts();
+

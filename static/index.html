@@ -667,6 +667,214 @@
     </section>
 
     <!-- ---------------------------------------- -->
+    <!-- VIEW 5: INTERCEPT ALERTS                 -->
+    <!-- ---------------------------------------- -->
+    <section id="view-intercepts" class="hidden flex-col w-full pb-6 space-y-3 max-w-layout-max-width mx-auto">
+      <!-- Active Intercept Card Matching Screen 5 Tactile Spec -->
+      <div class="neomorph-card rounded-2xl border border-slate-200/90 flex flex-col justify-between p-3.5 shadow-sm bg-white overflow-hidden" id="interceptCard">
+        <div class="flex flex-col gap-2.5">
+          <!-- Top Row Header: Ping + Critical + Risk + Countdown -->
+          <div class="flex flex-col gap-1.5 pb-2 border-b border-slate-100">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="relative flex h-3 w-3">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-500 shadow-sm"></span>
+                </div>
+                <h2 class="text-[15px] font-bold text-slate-900 tracking-tight leading-none">Security Intercept</h2>
+                <span class="font-mono text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">CRITICAL</span>
+                <span class="font-mono text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">Risk: 9.4</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <div class="flex items-center gap-1 text-slate-700 bg-slate-100/90 border border-slate-200/90 px-2 py-0.5 rounded-full">
+                  <span class="material-symbols-outlined text-[13px] text-rose-500">timer</span>
+                  <span class="font-mono text-[11px] font-bold text-slate-900" id="countdown">40s</span>
+                </div>
+                <span class="text-[9px] font-mono text-slate-400">auto-block</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between text-[10px] font-mono text-slate-500">
+              <div class="flex items-center gap-1 truncate">
+                <span class="text-slate-800 font-semibold" id="intercept-agent-name">Claude Code</span>
+                <span>•</span>
+                <span id="intercept-pid-label">PID #8765</span>
+                <span>•</span>
+                <span class="text-rose-600 font-bold" id="intercept-rule-label">PathGuard (PG-04)</span>
+              </div>
+              <span class="text-[10px] font-mono text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200/70" id="intercept-target-badge">Unmasked .env</span>
+            </div>
+            <!-- Progress Countdown Bar -->
+            <div class="w-full bg-slate-100 rounded-full h-1 overflow-hidden mt-0.5">
+              <div id="countdown-bar" class="bg-gradient-to-r from-rose-500 to-red-600 h-full rounded-full w-full duration-1000 transition-all"></div>
+            </div>
+          </div>
+
+          <!-- Sub-tabs: Code Snippet, Lineage, Live Diff -->
+          <div class="flex items-center bg-slate-100/90 p-0.5 rounded-xl border border-slate-200/80 font-mono text-[10px]" id="intercept-subtabs">
+            <button id="intercept-subtab-snippet" onclick="switchInterceptSubTab('snippet')" class="flex-1 py-1 px-2 rounded-lg bg-white font-bold text-[#4f46e5] shadow-xs flex items-center justify-center gap-1 border border-slate-200/60">
+              <span class="material-symbols-outlined text-[12px]">terminal</span>
+              <span>Code Snippet</span>
+            </button>
+            <button id="intercept-subtab-lineage" onclick="switchInterceptSubTab('lineage')" class="flex-1 py-1 px-2 rounded-lg text-slate-500 font-medium hover:text-slate-800 flex items-center justify-center gap-1">
+              <span class="material-symbols-outlined text-[12px]">account_tree</span>
+              <span>Lineage</span>
+            </button>
+            <button id="intercept-subtab-diff" onclick="switchInterceptSubTab('diff')" class="flex-1 py-1 px-2 rounded-lg text-slate-500 font-medium hover:text-slate-800 flex items-center justify-center gap-1">
+              <span class="material-symbols-outlined text-[12px]">difference</span>
+              <span>Live Diff</span>
+            </button>
+          </div>
+
+          <!-- Code Snippet Box -->
+          <div id="intercept-box-snippet" class="neomorph-code rounded-xl text-slate-200 font-mono text-[11px] flex flex-col overflow-hidden border border-slate-800 shadow-sm">
+            <div class="flex items-center justify-between px-2.5 py-1.5 bg-slate-950/80 border-b border-slate-800/90">
+              <div class="flex items-center gap-1.5 truncate">
+                <span class="text-cyan-400 font-bold select-none text-[10px]">exec $</span>
+                <span class="text-white font-medium text-[11px] truncate" id="intercept-cmd-text">cat /Users/dev/.env</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <button id="btn-copy-intercept" onclick="copyInterceptCode()" class="text-slate-400 hover:text-white text-[9px] font-mono flex items-center gap-0.5 px-1.5 py-0.5 rounded hover:bg-slate-800/80 transition-colors">
+                  <span class="material-symbols-outlined text-[11px]">content_copy</span>
+                  <span id="copy-intercept-label">Copy</span>
+                </button>
+                <button id="btn-wrap-intercept" onclick="toggleInterceptWrap()" class="text-indigo-300 hover:text-indigo-100 text-[9px] font-mono flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-indigo-950/70 border border-indigo-800/60 hover:bg-indigo-900/60 transition-colors">
+                  <span class="material-symbols-outlined text-[11px]">wrap_text</span>
+                  <span>Wrap</span>
+                </button>
+              </div>
+            </div>
+            <div id="intercept-code-content" class="p-2.5 flex flex-col gap-1 text-[10.5px] leading-snug select-text bg-[#0f172a]">
+              <div class="flex items-start gap-2">
+                <span class="text-slate-600 select-none text-[9px] w-2.5 text-right pt-0.5">1</span>
+                <div class="text-slate-300 flex-1 truncate"><span class="text-rose-400 font-semibold">AWS_SECRET_ACCESS_KEY</span>=<span class="bg-rose-950 text-rose-300 border border-rose-700/80 px-1 py-0.2 rounded font-bold shadow-xs">AKIA... [REDACTED]</span></div>
+              </div>
+              <div class="flex items-start gap-2">
+                <span class="text-slate-600 select-none text-[9px] w-2.5 text-right pt-0.5">2</span>
+                <div class="text-slate-400 truncate opacity-85 flex-1">DATABASE_URL="postgres://dev:****@127.0.0.1:5432"</div>
+              </div>
+              <div class="flex items-start gap-2">
+                <span class="text-slate-600 select-none text-[9px] w-2.5 text-right pt-0.5">3</span>
+                <div class="text-slate-400 truncate opacity-70 flex-1">STRIPE_API_KEY="sk_live_********************"</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Lineage Box -->
+          <div id="intercept-box-lineage" class="hidden neomorph-code rounded-xl text-slate-200 font-mono text-[11px] p-3 flex-col gap-2 border border-slate-800 shadow-sm bg-[#0f172a]">
+            <div class="flex items-center justify-between text-[10px] text-cyan-400 font-bold border-b border-slate-800 pb-1.5">
+              <span>PROCESS LINEAGE HIERARCHY</span>
+              <span class="text-slate-400">cgroup: /sandbox/jail-01</span>
+            </div>
+            <div class="flex flex-col gap-1 text-[11px] py-1">
+              <div class="text-slate-400 flex items-center gap-2">
+                <span class="text-slate-600">PID 1</span>
+                <span class="text-slate-300">systemd init (Host root)</span>
+              </div>
+              <div class="text-slate-400 flex items-center gap-2 pl-3 border-l border-slate-800">
+                <span class="text-slate-600">PID 7412</span>
+                <span class="text-slate-300">/bin/bash -l (pty-2)</span>
+              </div>
+              <div class="text-slate-400 flex items-center gap-2 pl-6 border-l border-slate-800">
+                <span class="text-slate-600">PID 8491</span>
+                <span class="text-indigo-300 font-bold">claude-agent-daemon (Local AI)</span>
+              </div>
+              <div class="text-rose-400 flex items-center gap-2 pl-9 border-l border-rose-800 font-bold bg-rose-950/40 py-1 rounded">
+                <span class="text-rose-400">PID 8765</span>
+                <span>⚡ [INTERCEPTED] cat /Users/dev/.env</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Diff Box -->
+          <div id="intercept-box-diff" class="hidden neomorph-code rounded-xl text-slate-200 font-mono text-[11px] p-3 flex-col gap-2 border border-slate-800 shadow-sm bg-[#0f172a]">
+            <div class="flex items-center justify-between text-[10px] text-emerald-400 font-bold border-b border-slate-800 pb-1.5">
+              <span>SECURITY PERIMETER INTERCEPT DELTA</span>
+              <span class="text-rose-400 font-bold">DENIED</span>
+            </div>
+            <div class="text-[11px] font-mono leading-relaxed p-2 rounded bg-slate-950/70 border border-slate-800 space-y-1">
+              <div class="text-rose-400">- ATTEMPTED READ: /Users/dev/.env</div>
+              <div class="text-slate-400">  INODE: 1403921 (Perms: 0600, Owner: dev)</div>
+              <div class="text-emerald-400">+ ENFORCED: Zero-Tolerance Policy PG-04 Active</div>
+              <div class="text-slate-400">  ACTION: Quarantine process, intercept prompt before egress</div>
+            </div>
+          </div>
+
+          <!-- In-card Explain Risk Box (Collapsible) -->
+          <div id="intercept-explain-box" class="hidden p-2.5 rounded-xl bg-indigo-50/90 border border-indigo-200 text-slate-800 font-mono text-[11px] flex flex-col gap-1">
+            <div class="flex items-center justify-between text-[#4f46e5] font-bold text-[11px]">
+              <div class="flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px]">auto_awesome</span>
+                <span>Security Analysis (Risk 9.4)</span>
+              </div>
+              <button onclick="document.getElementById('intercept-explain-box').classList.add('hidden')" class="text-slate-400 hover:text-slate-700">✕</button>
+            </div>
+            <p class="text-[11px] text-slate-700 leading-snug font-sans">
+              Reading <code class="font-mono bg-white px-1 py-0.5 rounded text-rose-600">.env</code> directly exposes unredacted AWS &amp; Stripe production secret keys to the model's LLM context window. If approved, these secrets may persist in outbound telemetry logs.
+            </p>
+          </div>
+
+          <!-- 3 Action helper pills: Explain Risk, Mask & Proceed, Dry-Run -->
+          <div class="grid grid-cols-3 gap-1.5">
+            <button id="btn-explain-risk" onclick="explainInterceptRisk()" class="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-indigo-50 hover:bg-indigo-100/80 border border-indigo-200/80 text-[#4f46e5] font-mono text-[10px] font-bold transition-all shadow-2xs active:scale-95">
+              <span class="material-symbols-outlined text-[13px]">auto_awesome</span>
+              <span class="truncate">Explain Risk</span>
+            </button>
+            <button id="btn-mask-proceed" onclick="maskAndProceed()" class="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200/80 text-emerald-700 font-mono text-[10px] font-bold transition-all shadow-2xs active:scale-95">
+              <span class="material-symbols-outlined text-[13px]">bolt</span>
+              <span class="truncate">Mask &amp; Proceed</span>
+            </button>
+            <button id="btn-dry-run" onclick="dryRunIntercept()" class="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-mono text-[10px] font-bold transition-all shadow-2xs active:scale-95">
+              <span class="material-symbols-outlined text-[13px]">science</span>
+              <span class="truncate">Dry-Run</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Bottom Interactive Buttons -->
+        <div class="flex flex-col gap-2 pt-2 border-t border-slate-100">
+          <div class="flex items-center justify-between px-2 py-1 rounded-lg bg-slate-50/90 border border-slate-200/70">
+            <label class="flex items-center gap-1.5 cursor-pointer select-none">
+              <input id="cb-quarantine" checked class="rounded border-slate-300 text-[#4f46e5] focus:ring-0 w-3 h-3" type="checkbox"/>
+              <span class="font-mono text-[10px] text-slate-600 font-medium">Quarantine process tree &amp; memory dump</span>
+            </label>
+            <span class="material-symbols-outlined text-[14px] text-slate-400" title="Takes crash dump and halts child PIDs">info</span>
+          </div>
+
+          <!-- Primary Action: Block & Terminate -->
+          <button class="flex items-center justify-center gap-2 h-10 w-full rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-mono text-[12px] uppercase tracking-wider font-bold shadow-[0_4px_14px_rgba(220,38,38,0.3)] active:scale-[0.98] transition-all" id="blockBtn" onclick="handleInterceptAction('block')">
+            <span class="material-symbols-outlined text-[17px]">pan_tool</span>
+            <span>Block &amp; Terminate PID</span>
+          </button>
+
+          <!-- Secondary Actions -->
+          <div class="grid grid-cols-2 gap-2">
+            <button class="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300/80 font-mono text-[11px] uppercase font-bold active:scale-[0.98] transition-all shadow-sm" id="allowOnceBtn" onclick="handleInterceptAction('allow_once')">
+              <span class="material-symbols-outlined text-[15px] text-amber-600">lock_open</span>
+              <span>Allow Once (1h)</span>
+            </button>
+            <button class="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-mono text-[11px] uppercase font-bold active:scale-[0.98] transition-all shadow-sm" id="allowAlwaysBtn" onclick="handleInterceptAction('whitelist')">
+              <span class="material-symbols-outlined text-[15px] text-slate-500">verified_user</span>
+              <span>Whitelist PG-04</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty State Card when all intercepts are cleared -->
+      <div id="intercept-empty-state" class="hidden bg-surface-container-lowest rounded-2xl p-8 border border-surface-container-high text-center flex-col items-center justify-center gap-3">
+        <div class="h-16 w-16 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shadow-sm">
+          <span class="material-symbols-outlined text-[36px]">verified_user</span>
+        </div>
+        <span class="font-bold text-[16px] text-slate-900">No Active Intercepts</span>
+        <span class="text-[12px] text-slate-500 max-w-[280px]">All autonomous agent operations are safely contained within approved security policies.</span>
+        <button onclick="switchTab('guardrails')" class="mt-2 text-[#4f46e5] font-mono text-xs font-bold hover:underline flex items-center gap-1">
+          <span>View Guardrail Rules</span>
+          <span class="material-symbols-outlined text-sm">arrow_forward</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ---------------------------------------- -->
     <!-- VIEW 6: GUARDRAIL POLICIES               -->
     <!-- ---------------------------------------- -->
     <section id="view-guardrails" class="hidden flex-col w-full pb-6 space-y-3">
@@ -1246,6 +1454,10 @@
   <!-- ========================================== -->
   <nav class="fixed bottom-0 inset-x-0 z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-dock border-t border-outline-variant/30">
     <div class="max-w-layout-max-width mx-auto px-gutter py-2 flex items-center justify-between gap-1">
+      <button id="nav-btn-home" data-path="system-overview" class="nav-btn flex-1 flex flex-col items-center justify-center gap-0.5 py-1 px-1 rounded-xl text-primary font-bold transition-all bg-primary-container text-on-primary shadow-sm shadow-primary/30">
+        <span class="material-symbols-outlined text-[20px]">dashboard</span>
+        <span class="font-mono text-[9px] uppercase tracking-wider font-semibold">Home</span>
+      </button>
       <button id="nav-btn-terminal" data-path="terminal-console" class="nav-btn flex-1 flex flex-col items-center justify-center gap-0.5 py-1 px-1 rounded-xl text-on-surface-variant transition-all hover:text-on-surface">
         <span class="material-symbols-outlined text-[20px]">terminal</span>
         <span class="font-mono text-[9px] uppercase tracking-wider font-semibold">Terminal</span>
@@ -1253,7 +1465,7 @@
       <button id="nav-btn-intercepts" data-path="intercept-alerts" class="nav-btn flex-1 flex flex-col items-center justify-center gap-0.5 py-1 px-1 rounded-xl text-on-surface-variant transition-all hover:text-on-surface relative">
         <div class="relative flex items-center justify-center">
           <span class="material-symbols-outlined text-[20px]">shield</span>
-          <span class="absolute -top-1 -right-2 flex h-3.5 min-w-3.5 px-0.5 items-center justify-center rounded-full bg-error text-on-error font-mono text-[8px] font-bold shadow-xs">1</span>
+          <span id="nav-intercept-badge" class="absolute -top-1 -right-2 flex h-3.5 min-w-3.5 px-0.5 items-center justify-center rounded-full bg-error text-on-error font-mono text-[8px] font-bold shadow-xs">1</span>
         </div>
         <span class="font-mono text-[9px] uppercase tracking-wider font-semibold">Intercepts</span>
       </button>
@@ -1264,10 +1476,6 @@
       <button id="nav-btn-guardrails" data-path="guardrail-policies" class="nav-btn flex-1 flex flex-col items-center justify-center gap-0.5 py-1 px-1 rounded-xl text-on-surface-variant transition-all hover:text-on-surface">
         <span class="material-symbols-outlined text-[20px]">policy</span>
         <span class="font-mono text-[9px] uppercase tracking-wider font-semibold">Guardrails</span>
-      </button>
-      <button id="nav-btn-home" data-path="system-overview" class="nav-btn flex-1 flex flex-col items-center justify-center gap-0.5 py-1 px-1 rounded-xl text-primary font-bold transition-all bg-primary-container text-on-primary shadow-sm shadow-primary/30">
-        <span class="material-symbols-outlined text-[20px]">dashboard</span>
-        <span class="font-mono text-[9px] uppercase tracking-wider font-semibold">Home</span>
       </button>
     </div>
   </nav>

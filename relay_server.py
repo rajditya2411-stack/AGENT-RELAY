@@ -71,6 +71,34 @@ class DeviceSession:
             "[guardrail] Zero-Tolerance Filesystem & CommandGuard perimeter active.",
             "[agent] Claude Code connected via stdio pipe.",
         ]
+        self.active_intercepts: List[Dict[str, Any]] = [
+            {
+                "id": "int-8765",
+                "title": "Security Intercept",
+                "severity": "CRITICAL",
+                "risk_score": 9.4,
+                "rule_id": "PG-04",
+                "rule_name": "PathGuard (PG-04)",
+                "agent": "claude",
+                "agent_name": "Claude Code",
+                "pid": 8765,
+                "target": "Unmasked .env",
+                "command": "cat /Users/dev/.env",
+                "timeout_seconds": 40,
+                "created_at": time.time(),
+                "status": "pending",
+                "quarantine": True,
+                "spec": {
+                    "rule": "RuleEngine:PG-04",
+                    "severity_score": "Severity 9.4 / Root Credential Vector",
+                    "reason": "ACCESS DENIED: Root environment configuration traversal detected.",
+                    "inode": "/workspace/.env",
+                    "caller_pid": 8765,
+                    "caller_name": "claude-agent-daemon",
+                    "hash": "c7e4...09d8"
+                }
+            }
+        ]
         self.audit_logs: List[Dict[str, Any]] = [
             {
                 "id": "log-001",
@@ -369,6 +397,123 @@ async def export_audit_logs(device_id: str):
     }
 
 
+@app.get("/api/devices/{device_id}/intercepts")
+async def get_device_intercepts(device_id: str):
+    session = get_or_create_session(device_id)
+    pending_count = sum(1 for i in session.active_intercepts if i.get("status") == "pending")
+    return {
+        "device_id": device_id,
+        "intercepts": session.active_intercepts,
+        "pending_count": pending_count,
+    }
+
+
+@app.post("/api/devices/{device_id}/intercepts/{intercept_id}/action")
+async def take_intercept_action(device_id: str, intercept_id: str, payload: Dict[str, Any]):
+    session = get_or_create_session(device_id)
+    action = payload.get("action", "block")
+    quarantine = payload.get("quarantine", True)
+
+    target_intercept = None
+    for item in session.active_intercepts:
+        if item.get("id") == intercept_id:
+            target_intercept = item
+            break
+
+    if not target_intercept:
+        raise HTTPException(status_code=404, detail="Intercept not found")
+
+    target_intercept["status"] = action
+    target_intercept["resolved_at"] = time.time()
+    target_intercept["quarantine"] = quarantine
+
+    pending_count = sum(1 for i in session.active_intercepts if i.get("status") == "pending")
+    session.guardrail_policies["stats"]["intercepts_pending"] = pending_count
+
+    audit_title = "Security Intercept Resolved"
+    audit_status = "Blocked (User Intercept)"
+    audit_action = "Manual User Intercept Action"
+    audit_severity = "critical"
+
+    if action == "block":
+        audit_title = "PathGuard Kill Switch"
+        audit_status = "Blocked (User Intercept)"
+        audit_action = "Process Terminated & Quarantined"
+        audit_severity = "critical"
+        session.guardrail_policies["stats"]["blocks_24h"] = session.guardrail_policies["stats"].get("blocks_24h", 42) + 1
+    elif action == "allow_once":
+        audit_title = "PathGuard One-Time Exemption"
+        audit_status = "Allowed (One-Time Exemption)"
+        audit_action = "Single-Cycle Exemption Granted (1h)"
+        audit_severity = "warning"
+    elif action == "whitelist":
+        audit_title = "PathGuard Rule Whitelist"
+        audit_status = "Allowed (Whitelisted PG-04)"
+        audit_action = "Rule PG-04 Whitelisted on Workspace"
+        audit_severity = "allowed"
+        if "custom_globs" in session.guardrail_policies.get("pathguard", {}):
+            if "!**/.env" not in session.guardrail_policies["pathguard"]["custom_globs"]:
+                session.guardrail_policies["pathguard"]["custom_globs"].append("!**/.env")
+    elif action == "mask_proceed":
+        audit_title = "SecretRedactor In-Flight Mask"
+        audit_status = "Allowed (Masked Stream)"
+        audit_action = "Entropy Mask Applied to Inbound Stream"
+        audit_severity = "warning"
+    elif action == "dry_run":
+        audit_title = "Sandbox Dry-Run Inspection"
+        audit_status = "Allowed (Sandbox Ephemeral)"
+        audit_action = "Process Executed in Isolated Container"
+        audit_severity = "allowed"
+
+    audit_entry = {
+        "id": f"log-{int(time.time()*1000)%100000}",
+        "title": audit_title,
+        "rule_id": target_intercept.get("rule_id", "PG-04"),
+        "agent": target_intercept.get("agent", "claude"),
+        "agent_name": target_intercept.get("agent_name", "Claude Code"),
+        "severity": audit_severity,
+        "status": audit_status,
+        "action": audit_action,
+        "target": target_intercept.get("command", "cat /Users/dev/.env"),
+        "time_str": "Just now",
+        "timestamp": time.time(),
+        "keywords": f"intercept {action} {target_intercept.get('rule_id')} {target_intercept.get('agent')}",
+        "spec": {
+            "rule": target_intercept.get("rule_name", "PathGuard (PG-04)"),
+            "severity_score": f"Risk {target_intercept.get('risk_score', 9.4)} / Resolved via {action}",
+            "reason": f"Intercept action '{action}' executed from Mobile Console. Quarantine={quarantine}",
+            "inode": "/workspace/.env",
+            "caller_pid": target_intercept.get("pid", 8765),
+            "caller_name": "claude-agent-daemon",
+            "hash": "e9b2...88fa"
+        }
+    }
+    session.audit_logs.insert(0, audit_entry)
+
+    event = session.add_event({
+        "event_type": "intercept_action",
+        "payload": {
+            "intercept_id": intercept_id,
+            "action": action,
+            "intercept": target_intercept,
+            "pending_count": pending_count,
+            "audit_log": audit_entry,
+        }
+    })
+    for client in list(session.client_ws_list):
+        try:
+            await client.send_json(event)
+        except Exception:
+            session.client_ws_list.discard(client)
+
+    return {
+        "status": "success",
+        "action": action,
+        "intercept_id": intercept_id,
+        "pending_count": pending_count,
+    }
+
+
 @app.get("/api/devices/{device_id}/guardrails")
 async def get_guardrail_policies(device_id: str):
     session = get_or_create_session(device_id)
@@ -572,6 +717,7 @@ async def client_websocket_endpoint(
                 "terminal_logs": session.terminal_logs[-30:],
                 "audit_logs": session.audit_logs[:20],
                 "guardrail_policies": session.guardrail_policies,
+                "active_intercepts": session.active_intercepts,
             },
         })
 

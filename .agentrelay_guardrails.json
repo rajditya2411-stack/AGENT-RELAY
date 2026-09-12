@@ -8,14 +8,11 @@
     "latency_ms": 1.2
   },
   "pathguard": {
-    "certificates": true,
-    "custom_globs": [
-      "**/config/secrets.*",
-      "~/.aws/credentials"
-    ],
-    "service_account": true,
     "env_files": true,
-    "ssh_keys": true
+    "ssh_keys": true,
+    "certificates": true,
+    "service_account": true,
+    "custom_globs": []
   },
   "commandguard": {
     "rm_rf": true,
@@ -33,10 +30,6 @@
     }
   },
   "sandbox": {
-    "runtime_engine": "docker",
-    "cgroups_cpu_cores": 2,
-    "cgroups_ram_limit": "4GB",
-    "network_policy": "bridge_isolated",
-    "mount_policy": "ro_root"
+    "runtime_engine": "docker"
   }
 }
