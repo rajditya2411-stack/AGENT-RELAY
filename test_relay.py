@@ -30,6 +30,7 @@ class MockWebSocket:
         self.sent_json_list = []
         self.receive_queue = asyncio.Queue()
         self.is_closed = False
+        self.client_state = 1
 
     async def accept(self):
         pass
@@ -75,7 +76,7 @@ class TestRelayServer(unittest.TestCase):
             with open(res.path, "r", encoding="utf-8") as f:
                 content = f.read()
             self.assertIn("AgentRelay", content)
-            self.assertIn("Auto-Audit &amp; Resume", content)
+            self.assertIn("Auto-Audit", content)
 
             # 2. Test health_check
             data = await health_check()

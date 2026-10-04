@@ -1055,7 +1055,7 @@ async def client_websocket_endpoint(
                 continue
 
             # Forward prompt or action to Desktop Bridge if attached, else execute standalone
-            if session.bridge_ws and session.is_online and session.bridge_ws.client_state == 1:
+            if session.bridge_ws and session.is_online and getattr(session.bridge_ws, "client_state", 1) == 1:
                 await session.bridge_ws.send_json(client_msg)
             else:
                 if msg_type == "prompt":

@@ -32,6 +32,8 @@ wheels/
 *.key
 id_rsa
 credentials.json
+.agentrelay_vault.enc
+.agentrelay_audit.jsonl
 
 # IDE / OS
 .idea/
