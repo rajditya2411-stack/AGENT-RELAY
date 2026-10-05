@@ -162,7 +162,8 @@ class ActionGuard:
         # Everything non-INFO requires approval.
 
         # Trigger Quarantine & Intercept
-        intercept_id = f"int_{int(time.time() * 1000) % 1000000}"
+        import uuid
+        intercept_id = f"int_{uuid.uuid4().hex[:8]}"
         quarantine_sec = payload.quarantine_timer_sec
         if self.autonomy_tier == AutonomyTier.TIER_1_GUARDED:
             quarantine_sec = max(quarantine_sec, 45)
