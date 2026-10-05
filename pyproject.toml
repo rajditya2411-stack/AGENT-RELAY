@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentrelay"
+version = "2.0.0"
+description = "Universal Operating System and Security Shield for Personal Autonomous Agents"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "AgentRelay Core Team" }
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "fastapi>=0.100.0",
+    "uvicorn>=0.22.0",
+    "websockets>=11.0",
+    "cryptography>=41.0.0",
+    "pydantic>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "httpx>=0.24.0",
+]
+all = [
+    "anthropic>=0.20.0",
+    "openai>=1.0.0",
+    "google-generativeai>=0.4.0",
+]
+
+[project.scripts]
+agentrelay = "agentrelay.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["agentrelay*", "static*"]
+exclude = ["tests*", "docs*"]
