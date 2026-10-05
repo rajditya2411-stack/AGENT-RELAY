@@ -56,6 +56,23 @@ class Vault:
     def is_unlocked(self) -> bool:
         return self._is_unlocked
 
+    @property
+    def is_locked(self) -> bool:
+        return not self._is_unlocked
+
+    def lock(self) -> None:
+        """Lock the vault and zero out in-memory data."""
+        self._is_unlocked = False
+        self._derived_key = None
+        self._data = {"keys": {}, "metadata": {}}
+        logger.info("Vault locked: in-memory credentials cleared.")
+
+    def list_configured_providers(self) -> List[str]:
+        return self.list_providers()
+
+    def wipe_all(self) -> None:
+        self.clear_all()
+
     @staticmethod
     def _get_machine_bound_passphrase() -> str:
         """Derive a stable machine-bound secret if no user passphrase is provided."""

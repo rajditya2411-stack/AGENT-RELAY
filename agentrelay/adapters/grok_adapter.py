@@ -262,7 +262,7 @@ class GrokAdapter(BaseAdapter):
         instruction_lower = instruction.lower()
 
         # Handle post publishing instruction
-        if "post " in instruction_lower or "tweet " in instruction_lower or "publish " in instruction_lower:
+        if any(k in instruction_lower for k in ("post", "tweet", "publish")):
             handle = (context or {}).get("target_handle", "@agentrelay")
             content = (context or {}).get("content", instruction)
             res = await self.publish_post(content=content, target_handle=handle)

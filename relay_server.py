@@ -38,6 +38,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount AgentRelay v2.0 Modular Routers
+from agentrelay.server.routes import (
+    agents_router,
+    guardrails_router,
+    vault_router,
+    audit_router,
+    ws_router,
+)
+app.include_router(agents_router)
+app.include_router(guardrails_router)
+app.include_router(vault_router)
+app.include_router(audit_router)
+app.include_router(ws_router)
+
 # Ensure static directory exists
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 if os.path.exists(STATIC_DIR):

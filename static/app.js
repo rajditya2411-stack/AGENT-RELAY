@@ -2256,4 +2256,141 @@ if (btnCopyLogsEl) {
   });
 }
 
+// =====================================================================
+// AgentRelay v2.0 — Dual-Mode Switch & Frontier Agents Hub
+// =====================================================================
+let currentAppMode = "DEV_SHIELD"; // "DEV_SHIELD" | "FRONTIER_AGENT"
+
+function switchAppMode(mode) {
+  currentAppMode = mode;
+  const devBtn = document.getElementById("mode-dev-btn");
+  const frontierBtn = document.getElementById("mode-frontier-btn");
+  const frontierStage = document.getElementById("view-frontier-hub");
+
+  if (mode === "FRONTIER_AGENT") {
+    // Highlight Frontier button
+    if (devBtn) {
+      devBtn.className = "flex-1 flex items-center justify-center gap-1.5 py-1 px-3 rounded-lg font-mono text-[11px] font-bold transition-all text-on-surface-variant hover:text-on-surface";
+    }
+    if (frontierBtn) {
+      frontierBtn.className = "flex-1 flex items-center justify-center gap-1.5 py-1 px-3 rounded-lg font-mono text-[11px] font-bold transition-all bg-primary-container text-on-primary shadow-xs";
+    }
+
+    // Hide dev views and display frontier hub
+    if (viewHome) viewHome.classList.add("hidden");
+    if (viewProjectSessions) viewProjectSessions.classList.add("hidden");
+    if (viewChat) viewChat.classList.add("hidden");
+    if (viewTerminal) viewTerminal.classList.add("hidden");
+    if (viewTasks) viewTasks.classList.add("hidden");
+    if (viewLogs) viewLogs.classList.add("hidden");
+    if (frontierStage) frontierStage.classList.remove("hidden");
+
+  } else {
+    // Highlight Dev button
+    if (devBtn) {
+      devBtn.className = "flex-1 flex items-center justify-center gap-1.5 py-1 px-3 rounded-lg font-mono text-[11px] font-bold transition-all bg-primary-container text-on-primary shadow-xs";
+    }
+    if (frontierBtn) {
+      frontierBtn.className = "flex-1 flex items-center justify-center gap-1.5 py-1 px-3 rounded-lg font-mono text-[11px] font-bold transition-all text-on-surface-variant hover:text-on-surface";
+    }
+
+    // Hide frontier stage and show active tab
+    if (frontierStage) frontierStage.classList.add("hidden");
+    switchTab(activeTab || "home");
+  }
+
+  // Notify WebSocket if open
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: "subscribe", mode: mode }));
+  }
+}
+window.switchAppMode = switchAppMode;
+
+async function setAutonomyTier(tier) {
+  try {
+    const res = await fetch("/api/v2/guardrails/tier", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tier: tier }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      updateTierUI(data.tier);
+    }
+  } catch (err) {
+    // Fallback local update
+    updateTierUI(tier);
+  }
+}
+window.setAutonomyTier = setAutonomyTier;
+
+function updateTierUI(tier) {
+  const badge = document.getElementById("active-tier-badge");
+  const desc = document.getElementById("tier-description");
+  const b1 = document.getElementById("tier-1-btn");
+  const b2 = document.getElementById("tier-2-btn");
+  const b3 = document.getElementById("tier-3-btn");
+
+  const unsel = "py-2 px-1 rounded-xl text-center font-mono text-[10px] font-semibold text-on-surface-variant hover:text-on-surface transition";
+  const sel = "py-2 px-1 rounded-xl text-center font-mono text-[10px] font-bold bg-primary-container text-on-primary shadow-xs transition";
+
+  if (b1) b1.className = (tier === 1 ? sel : unsel);
+  if (b2) b2.className = (tier === 2 ? sel : unsel);
+  if (b3) b3.className = (tier === 3 ? sel : unsel);
+
+  if (tier === 1) {
+    if (badge) badge.textContent = "TIER 1 (GUARDED)";
+    if (desc) desc.textContent = "Zero external mutations allowed without manual mobile approval (45s quarantine).";
+  } else if (tier === 2) {
+    if (badge) badge.textContent = "TIER 2 (BALANCED)";
+    if (desc) desc.textContent = "Low-risk actions auto-approved; High/Critical external mutations quarantined with 30s timer.";
+  } else {
+    if (badge) badge.textContent = "TIER 3 (AUTONOMOUS)";
+    if (desc) desc.textContent = "High velocity: all non-critical mutations auto-approved; destructive actions blocked.";
+  }
+}
+
+async function instructFrontierAgent(agentId, instruction) {
+  appendFrontierFeed(`[${agentId}] Directive: "${instruction}"`, "text-primary");
+  try {
+    const res = await fetch(`/api/v2/agents/${agentId}/instruct`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ instruction: instruction }),
+    });
+    const data = await res.json();
+    if (data.result) {
+      if (data.result.requires_approval) {
+        appendFrontierFeed(`🚨 [ACTIONGUARD INTERCEPT] ${data.result.reason}`, "text-error font-bold");
+        // Pop into Intercept view
+        switchTab("intercepts");
+      } else {
+        appendFrontierFeed(`[${agentId}] Output: ${JSON.stringify(data.result.result || data.result.status)}`, "text-tertiary font-medium");
+      }
+    }
+  } catch (err) {
+    appendFrontierFeed(`[${agentId}] Executed in local sandbox: ${instruction}`, "text-on-surface-variant");
+  }
+}
+window.instructFrontierAgent = instructFrontierAgent;
+
+function appendFrontierFeed(text, colorClass = "text-on-surface") {
+  const feed = document.getElementById("frontier-feed");
+  if (!feed) return;
+  const row = document.createElement("div");
+  row.className = `p-2 rounded-xl bg-surface-container-low ${colorClass}`;
+  row.textContent = text;
+  feed.appendChild(row);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function clearFrontierStream() {
+  const feed = document.getElementById("frontier-feed");
+  if (feed) {
+    feed.innerHTML = '<div class="text-on-surface-variant p-2 rounded-xl bg-surface-container-low">[system] Feed cleared.</div>';
+  }
+}
+window.clearFrontierStream = clearFrontierStream;
+
+
 

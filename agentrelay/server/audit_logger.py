@@ -323,3 +323,58 @@ class AuditLogger:
             logger.info(f"Compliance audit bundle exported to {out_file}")
 
         return bundle
+
+    # Convenience Aliases
+    def record(
+        self,
+        agent_id: str,
+        action_type: str,
+        target: str = "",
+        payload: Optional[Dict[str, Any]] = None,
+        status: str = "EXECUTED",
+        severity: str = "INFO",
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Convenience alias for log_event."""
+        details = {"target": target, "payload": payload or {}}
+        if metadata:
+            details.update(metadata)
+        return self.log_event(
+            agent_id=agent_id,
+            action_type=action_type,
+            details=details,
+            status=status,
+            risk_level=severity,
+        )
+
+    def get_entries(
+        self,
+        limit: int = 50,
+        agent_id: Optional[str] = None,
+        severity: Optional[str] = None,
+        status: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Retrieve and filter records."""
+        records = self.read_records()
+        if agent_id:
+            records = [r for r in records if r.get("agent_id") == agent_id]
+        if severity:
+            records = [r for r in records if r.get("risk_level", "").upper() == severity.upper()]
+        if status:
+            records = [r for r in records if r.get("status", "").upper() == status.upper()]
+        return records[-limit:]
+
+    @property
+    def entries(self) -> List[Dict[str, Any]]:
+        return self.read_records()
+
+    @property
+    def signing_algorithm(self) -> str:
+        return "Ed25519" if HAS_ED25519 and self._public_key else "HMAC-SHA256"
+
+    def get_public_key_hex(self) -> str:
+        return self.public_key_hex
+
+    def verify_chain_integrity(self) -> Tuple[bool, Optional[str]]:
+        return self.verify_integrity()
+
